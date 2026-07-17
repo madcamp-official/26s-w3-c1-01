@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #18181b;
+  --muted: #71717a;
+  --border: #e4e4e7;
+  --card: #fafafa;
+  --accent: #dc2626;
+  --accent-soft: #fef2f2;
+  --correct: #16a34a;
+  --correct-soft: #f0fdf4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #09090b;
+    --foreground: #fafafa;
+    --muted: #a1a1aa;
+    --border: #27272a;
+    --card: #131316;
+    --accent: #f87171;
+    --accent-soft: #2a1515;
+    --correct: #4ade80;
+    --correct-soft: #14251a;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-correct: var(--correct);
+  --color-correct-soft: var(--correct-soft);
+}
+
+/* 한글 본문에 웹폰트를 얹으면 첫 화면에서 수백 KB를 더 받는다. 랜딩 이탈률이
+   지표인 프로젝트라 시스템 폰트로 간다. 어느 OS에서든 이미 있는 것만 쓴다. */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", Pretendard,
+    "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
+}
+
+/* 단어처럼 짧은 제목은 어색한 줄바꿈을 막는다. */
+h1,
+h2 {
+  text-wrap: balance;
+}
+
+/* 키보드 사용자에게만 포커스 링을 보여준다. */
+:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
