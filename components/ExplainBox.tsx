@@ -40,6 +40,21 @@ export default function ExplainBox({ onSubmit }: { onSubmit: (text: string) => v
 
   const locked = left > 0;
 
+  function submit() {
+    if (locked) return;
+    onSubmit(text.trim());
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== "Enter") return;
+    // 한글 입력 중의 Enter는 글자를 확정하는 키다. 이걸 제출로 가로채면
+    // "민주주의"를 치다가 마지막 글자를 확정하는 순간 제출돼 버린다.
+    if (e.nativeEvent.isComposing) return;
+    if (e.shiftKey) return; // 줄바꿈은 Shift+Enter로 남겨둔다
+    e.preventDefault();
+    submit();
+  }
+
   return (
     <div className="mt-8 flex flex-col gap-3">
       <label htmlFor="explain" className="sr-only">
@@ -50,14 +65,15 @@ export default function ExplainBox({ onSubmit }: { onSubmit: (text: string) => v
         ref={ref}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        rows={5}
+        onKeyDown={handleKeyDown}
+        rows={4}
         placeholder="설명해 보세요"
         className="w-full resize-none rounded-xl border border-border bg-card px-4 py-4 text-base leading-relaxed outline-none placeholder:text-muted focus:border-foreground"
       />
 
       <button
         type="button"
-        onClick={() => onSubmit(text.trim())}
+        onClick={submit}
         disabled={locked}
         aria-describedby={locked ? "gate-hint" : undefined}
         className="w-full rounded-xl bg-foreground px-5 py-4 font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
@@ -65,11 +81,9 @@ export default function ExplainBox({ onSubmit }: { onSubmit: (text: string) => v
         {locked ? `${left}` : "정답 확인"}
       </button>
 
-      {locked && (
-        <p id="gate-hint" className="text-center text-sm text-muted">
-          잠깐만 더 생각해 보세요
-        </p>
-      )}
+      <p id="gate-hint" className="text-center text-sm text-muted">
+        {locked ? "잠깐만 더 생각해 보세요" : "Enter로 확인 · Shift+Enter 줄바꿈"}
+      </p>
     </div>
   );
 }

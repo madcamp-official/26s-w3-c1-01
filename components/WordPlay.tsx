@@ -11,7 +11,9 @@ import {
   getSessionSnapshot,
   recordAnswer,
   subscribeSession,
+  type Judgment,
 } from "@/lib/session";
+import { peekPendingAnswer } from "@/lib/handoff";
 import { getWordStats, type WordStats } from "@/lib/stats";
 import { track } from "@/lib/analytics";
 
@@ -22,11 +24,14 @@ import RevealPanel from "./RevealPanel";
  * 단어 하나의 흐름.
  *
  *   안다  → 설명 쓰기(5초 게이트) → 정답 공개 + 자기판정 → 다음
- *   모른다 → 정답 공개만 → 다음
+ *   모른다 → 정답 공개만                                  → 다음
  *
  * "모른다"에 설명을 쓰게 하지 않는 이유: 모른다고 인정한 사람은 이 앱의 관심사가
  * 아니다. 착각은 "안다"고 한 사람에게만 일어난다. 모른다는 정직한 퇴로이고,
  * 그 대가로 결과 격자가 ⬜로 심심해진다.
+ *
+ * 첫 단어는 랜딩에서 이미 안다/모른다를 물었으므로 그 답을 넘겨받아(`handoff`)
+ * 질문 화면을 건너뛴다. 같은 질문을 두 번 하면 루프에 빠진 것처럼 보인다.
  *
  * 설계 원칙: 사용자가 읽어야 하는 글자를 최소화한다. 라우트 이동 없이 클라이언트
  * 상태로 단계를 넘긴다 — 제출 후 로딩이 걸리면 착각이 드러나는 순간의 긴장이 풀린다.
@@ -37,10 +42,19 @@ type Step = "ask" | "explain" | "reveal";
 export default function WordPlay({ word }: { word: Word }) {
   const router = useRouter();
 
-  const [step, setStep] = useState<Step>("ask");
-  const [knew, setKnew] = useState<boolean | null>(null);
+  // 랜딩에서 넘어온 답. 렌더 중에 읽어도 순수하다(소비하지 않는다).
+  const handoffKnew = peekPendingAnswer(word.id);
+
+  // 로컬 상태가 있으면 그게 이기고, 없으면 handoff에서 파생된다.
+  // effect에서 setState로 초기값을 세팅하면 캐스케이딩 렌더와 린트 룰에 걸린다.
+  const [localStep, setLocalStep] = useState<Step | null>(null);
+  const [localKnew, setLocalKnew] = useState<boolean | null>(null);
   const [text, setText] = useState("");
   const [stats, setStats] = useState<WordStats | null>(null);
+
+  const knew = localKnew ?? handoffKnew;
+  const step: Step =
+    localStep ?? (handoffKnew === null ? "ask" : handoffKnew ? "explain" : "reveal");
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   const isFirstRender = useRef(true);
@@ -92,43 +106,41 @@ export default function WordPlay({ word }: { word: Word }) {
   }
 
   function handleKnew(v: boolean) {
-    setKnew(v);
+    setLocalKnew(v);
     track("confidence_selected", { wordId: word.id, knew: v });
-
-    if (v) {
-      setStep("explain");
-      return;
-    }
-
-    // 모른다 → 쓸 것도 판정할 것도 없다. 정답만 보여주고 넘긴다.
-    recordAnswer({ wordId: word.id, knew: false, text: null, correct: false, at: Date.now() });
-    setStep("reveal");
-    track("result_view", { wordId: word.id, knew: false });
+    setLocalStep(v ? "explain" : "reveal");
+    if (!v) track("result_view", { wordId: word.id, knew: false });
   }
 
   function handleExplained(value: string) {
     setText(value);
-    // correct는 아직 모른다. 사용자가 판정해야 정해진다.
+    // 판정은 아직 없다. 사용자가 정해야 한다.
     track("answer_submitted", {
       wordId: word.id,
       knew: true,
       answerLength: value.length,
       gaveUp: value.length === 0,
     });
-    setStep("reveal");
+    setLocalStep("reveal");
     track("result_view", { wordId: word.id, knew: true });
   }
 
-  function handleJudge(correct: boolean) {
-    recordAnswer({ wordId: word.id, knew: true, text, correct, at: Date.now() });
-    track("self_judged", { wordId: word.id, correct, gaveUp: text.length === 0 });
+  function handleJudge(judgment: Judgment) {
+    recordAnswer({ wordId: word.id, knew: true, text, judgment, at: Date.now() });
+    track("self_judged", { wordId: word.id, judgment, gaveUp: text.length === 0 });
+    goNext();
+  }
+
+  // 모른다 경로: 쓸 것도 판정할 것도 없다. 넘어가는 시점에 기록한다.
+  function handleSkip() {
+    recordAnswer({ wordId: word.id, knew: false, text: null, judgment: null, at: Date.now() });
     goNext();
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-5 py-8">
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-5 py-6">
       {/* 진행 표시 */}
-      <div className="mb-12 flex items-center gap-3">
+      <div className="mb-10 flex items-center gap-3">
         <Link href="/" aria-label="처음으로" className="text-sm text-muted hover:text-foreground">
           ←
         </Link>
@@ -150,13 +162,13 @@ export default function WordPlay({ word }: { word: Word }) {
       <h1
         ref={headingRef}
         tabIndex={-1}
-        className="text-center text-5xl font-bold tracking-tight outline-none sm:text-6xl"
+        className="text-center text-4xl font-bold tracking-tight outline-none sm:text-5xl"
       >
         {word.word}
       </h1>
 
       {step === "ask" && (
-        <div className="mt-16 flex flex-col gap-3">
+        <div className="mt-14 flex flex-col gap-3">
           <p className="mb-1 text-center text-muted">설명할 수 있나요?</p>
           <div className="flex gap-3">
             <button
@@ -184,16 +196,16 @@ export default function WordPlay({ word }: { word: Word }) {
       )}
 
       {step === "reveal" && knew === false && (
-        <div className="mt-8 flex flex-col gap-6">
+        <div className="mt-6 flex flex-col gap-5">
           <section>
-            <h2 className="mb-2 text-sm font-semibold text-muted">실제 뜻</h2>
+            <h2 className="mb-1.5 text-xs font-semibold text-muted">실제 뜻</h2>
             <p className="rounded-xl border border-border bg-card px-4 py-3 leading-relaxed">
               {word.definition}
             </p>
           </section>
           <button
             type="button"
-            onClick={goNext}
+            onClick={handleSkip}
             className="w-full rounded-xl bg-foreground px-5 py-4 font-medium text-background transition-opacity hover:opacity-90"
           >
             {isLast ? "결과 보기" : "다음"}

@@ -10,21 +10,20 @@
 
 import type { SessionAnswer } from "./session";
 
-/**
- * 상태가 3개인 이유: "모른다"를 누르면 설명을 쓰지 않고 넘어가므로 판정 자체가
- * 없다. 모른다고 하고 맞히는 경우(찍어서 맞음)가 객관식과 달리 존재하지 않는다.
- */
-export type CellKind = "illusion" | "known" | "admitted";
+export type CellKind = "known" | "partial" | "illusion" | "admitted";
 
 const CELL_EMOJI: Record<CellKind, string> = {
-  illusion: "🟥", // 안다고 했는데 설명 못 함 ← 이 앱의 주제
   known: "🟩", // 안다고 했고 설명해냄
-  admitted: "⬜", // 모른다고 인정함
+  partial: "🟨", // 안다고 했는데 애매함
+  illusion: "🟥", // 안다고 했는데 설명 못 함 ← 이 앱의 주제
+  admitted: "⬜", // 모른다고 인정함 (판정 없음)
 };
 
 export function cellKind(answer: SessionAnswer): CellKind {
-  if (!answer.knew) return "admitted";
-  return answer.correct ? "known" : "illusion";
+  if (!answer.knew || answer.judgment === null) return "admitted";
+  if (answer.judgment === "correct") return "known";
+  if (answer.judgment === "partial") return "partial";
+  return "illusion";
 }
 
 export function cellEmoji(answer: SessionAnswer): string {
@@ -33,7 +32,10 @@ export function cellEmoji(answer: SessionAnswer): string {
 
 export type SessionScore = {
   total: number;
-  /** 안다고 했는데 설명 못 한 개수 = 착각 지수 */
+  /**
+   * 안다고 했는데 설명 못 한 개수 = 착각 지수.
+   * 애매(🟨)는 세지 않는다 — 착각은 '확실히 틀림'으로만 인정한다.
+   */
   illusions: number;
   /** 안다고 답한 문항 수 */
   claimed: number;
@@ -56,7 +58,7 @@ export function scoreSession(order: string[], answers: SessionAnswer[]): Session
 /** 착각 지수에 붙는 한 줄. 짧게 유지할 것 — 읽을 글자를 늘리지 않는다. */
 export function verdict(score: SessionScore): string {
   if (score.claimed === 0) return "아무것도 안다고 하지 않았습니다.";
-  if (score.illusions === 0) return "안다고 한 건 전부 설명해냈습니다.";
+  if (score.illusions === 0) return "안다고 한 건 설명해냈습니다.";
   if (score.illusions === score.claimed) return "안다고 한 걸 하나도 설명하지 못했습니다.";
   if (score.illusions >= 3) return "안다고 믿은 것 대부분이 착각이었습니다.";
   if (score.illusions >= 2) return "안다고 한 단어를 설명하지 못했습니다.";

@@ -26,7 +26,9 @@ export type EventName =
   | "next_word_click"
   | "retry_click"
   | "share_click"
-  | "session_complete";
+  | "session_complete"
+  /** ⚠️ 백엔드/GA가 없으면 이 추천은 아무 데도 안 간다. SuggestBox.tsx 주석 참고. */
+  | "word_suggested";
 
 export type EventPayload = {
   event: EventName;
