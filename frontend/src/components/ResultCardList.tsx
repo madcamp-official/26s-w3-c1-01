@@ -28,7 +28,7 @@ export function ResultCardList({ cards, detailsByCardId }: Props) {
               className="flex w-full items-center justify-between text-left"
             >
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {c.is_correct ? "✅" : "❌"} {c.card_id}
+                {c.is_correct ? "✅" : "❌"} {detail?.answer_title ?? c.card_id}
               </span>
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 내 선택: {LABEL[c.user_choice]} · 정답: {LABEL[c.correct_type]}

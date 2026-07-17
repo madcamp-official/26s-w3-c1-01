@@ -71,8 +71,8 @@ async function tagDifficulty(card) {
 
 // AI-01~AI-09: 소재 수집(카테고리/토픽 입력) -> 실화 생성/검증 -> AI창작 생성/검증 -> 난이도 태깅
 async function runPipeline({ category, topic }) {
-  // AI-01: topic이 없으면 문서화가 잘 된 실제 사건 풀에서 소재를 뽑아 grounding을 강화한다.
-  const resolvedTopic = topic || pickRandomTopic().topic;
+  // AI-01: topic이 없으면 문서화가 잘 된 실제 사건 풀에서 같은 카테고리 소재를 뽑아 grounding을 강화한다.
+  const resolvedTopic = topic || pickRandomTopic(category).topic;
 
   const real = await generateVerifiedRealCard({ category, topic: resolvedTopic });
   real.difficulty = await tagDifficulty(real);

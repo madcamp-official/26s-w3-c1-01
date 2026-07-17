@@ -6,7 +6,7 @@ interface Props {
   onStart: (session: CreateSessionResponse) => void;
 }
 
-const CATEGORIES = ["전체", "역사", "과학", "인물"];
+const CATEGORIES = ["전체", "역사", "사회", "과학", "인물"];
 const DIFFICULTIES: Array<Difficulty | "전체"> = ["전체", "EASY", "MEDIUM", "HARD"];
 
 /** FE-08: 카테고리/난이도 필터(선택 기능). */

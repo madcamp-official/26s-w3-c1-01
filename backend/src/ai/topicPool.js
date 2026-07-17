@@ -12,10 +12,20 @@ const REAL_EVENT_TOPICS = [
   { category: "과학", topic: "1938년 오슨 웰스의 라디오 드라마 '우주 전쟁' 방송 이후 발생한 사회적 소동" },
   { category: "과학", topic: "1989~1990년 벨기에 UFO 목격 사건(벨기에 UFO 웨이브)" },
   { category: "사회", topic: "1962년 탕가니카 웃음 전염병" },
+  { category: "인물", topic: "알베르트 아인슈타인이 이스라엘 2대 대통령직을 제안받았으나 거절한 일화" },
+  { category: "인물", topic: "베토벤이 청력을 거의 잃은 상태에서 교향곡 9번을 작곡하고 초연을 직접 지휘한 일화" },
+  { category: "인물", topic: "아이작 뉴턴이 조폐국장(Master of the Mint)으로 일하며 위조범을 직접 수사한 일화" },
+  { category: "인물", topic: "스티브 잡스가 대학 중퇴 후 청강한 캘리그래피 수업이 매킨토시 폰트에 영향을 준 일화" },
 ];
 
-function pickRandomTopic() {
-  return REAL_EVENT_TOPICS[Math.floor(Math.random() * REAL_EVENT_TOPICS.length)];
+// category가 주어지면 같은 카테고리 소재 중에서만 고른다 (일치하는 게 없으면 전체 풀에서 고름).
+// 카테고리와 무관한 소재를 잘못 뽑아 엉뚱한 카테고리에 실화 카드가 붙는 걸 방지한다.
+function pickRandomTopic(category) {
+  const pool = category
+    ? REAL_EVENT_TOPICS.filter((t) => t.category === category)
+    : REAL_EVENT_TOPICS;
+  const source = pool.length > 0 ? pool : REAL_EVENT_TOPICS;
+  return source[Math.floor(Math.random() * source.length)];
 }
 
 module.exports = { REAL_EVENT_TOPICS, pickRandomTopic };
