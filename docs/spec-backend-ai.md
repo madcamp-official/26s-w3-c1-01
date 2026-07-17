@@ -62,6 +62,15 @@ Response {
 }
 ```
 
+### 2.5 에러 응답
+
+| 상황 | 발생 API | 응답 |
+|---|---|---|
+| 존재하지 않는 세션 ID | next-card / answers / result | `404 { "error": "session_not_found" }` |
+| 필터(category/difficulty)에 맞는 카드가 하나도 없음 | 퀴즈 세트 생성 | `422 { "error": "no_cards_available" }` |
+| `user_choice`가 `REAL`/`FABRICATED`가 아님 | 응답 제출 | `400 { "error": "invalid_user_choice" }` |
+| 세션이 기대하는 다음 카드가 아닌 `card_id` 제출 | 응답 제출 | `409 { "error": "unexpected_card_id", "expected": "card_001" }` |
+
 ---
 
 ## 3. 데이터 모델
