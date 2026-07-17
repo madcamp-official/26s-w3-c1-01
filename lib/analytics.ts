@@ -21,6 +21,8 @@ export type EventName =
   | "confidence_selected"
   | "answer_submitted"
   | "result_view"
+  /** 자기판정. correct가 여기서 정해진다 — answer_submitted 시점엔 아직 모른다. */
+  | "self_judged"
   | "next_word_click"
   | "retry_click"
   | "share_click"

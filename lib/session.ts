@@ -9,9 +9,8 @@
  * 완주율"같은 걸 나중에 볼 수 있다.
  */
 
-import type { ConfidenceLevel } from "@/data/words";
-
-const SESSION_KEY = "kbi.session.v1";
+// 저장 형식이 바뀌면 키를 올린다. 예전 세션은 읽히지 않고 새로 시작된다.
+const SESSION_KEY = "kbi.session.v3";
 
 export type UtmParams = {
   source?: string;
@@ -21,8 +20,18 @@ export type UtmParams = {
 
 export type SessionAnswer = {
   wordId: string;
-  confidence: ConfidenceLevel;
-  choiceId: string;
+  /** 설명을 쓰기 전에 "안다"를 눌렀는지. 이 값과 correct의 차이가 착각 지수다. */
+  knew: boolean;
+  /**
+   * 사용자가 실제로 쓴 설명. "모른다"를 눌러 건너뛰었으면 null.
+   *
+   * 이 프로젝트에서 가장 값진 데이터다. 실제 사람들이 민주주의를 어떻게
+   * 설명하는지가 쌓이면, LLM 채점을 붙일 가치가 있는지 판단할 수 있다.
+   * 지금은 sessionStorage에만 있고 어디로도 전송되지 않는다.
+   * 백엔드에 보낼 때는 자유 입력이라는 점(개인정보가 섞일 수 있다)을 고려할 것.
+   */
+  text: string | null;
+  /** 사용자 본인의 판정. LLM이 아니라 사람이 자기 설명을 보고 정한다. */
   correct: boolean;
   at: number;
 };

@@ -21,12 +21,8 @@ import ShareButton from "@/components/ShareButton";
  * 주제가 착각이므로 몇 개 맞혔는지는 부차적이다.
  */
 
-const LEGEND: { emoji: string; label: string }[] = [
-  { emoji: "🟥", label: "안다고 했는데 틀림" },
-  { emoji: "🟩", label: "안다고 했고 맞음" },
-  { emoji: "🟦", label: "모른다고 했는데 맞음" },
-  { emoji: "⬜", label: "모른다고 했고 틀림" },
-];
+/** 범례는 한 줄로 붙인다. 여러 줄로 늘어놓으면 그 자체가 읽을거리가 된다. */
+const LEGEND = "🟩 설명해냄 · 🟥 착각 · ⬜ 모른다고 함";
 
 export default function ResultPage() {
   const router = useRouter();
@@ -51,7 +47,7 @@ export default function ResultPage() {
     const score = scoreSession(session.order, session.answers);
     track("session_complete", {
       total: score.total,
-      correct: score.correct,
+      claimed: score.claimed,
       illusions: score.illusions,
       durationMs: Date.now() - session.startedAt,
     });
@@ -62,10 +58,10 @@ export default function ResultPage() {
   const score = scoreSession(session.order, session.answers);
   const shareUrl = typeof window !== "undefined" ? window.location.origin : "";
   const byWord = new Map(session.answers.map((a) => [a.wordId, a]));
-  const illusionWords = session.order
-    .map((id) => byWord.get(id))
-    .filter((a) => a && cellKind(a) === "illusion")
-    .map((a) => getWord(a!.wordId)?.word)
+  const ordered = session.order.map((id) => byWord.get(id)).filter((a) => !!a);
+  const illusionWords = ordered
+    .filter((a) => cellKind(a) === "illusion")
+    .map((a) => getWord(a.wordId)?.word)
     .filter(Boolean);
 
   function handleRetry() {
@@ -75,65 +71,43 @@ export default function ResultPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-5 py-12">
-      <p className="text-sm font-medium text-muted">내가 안다고 착각한 단어</p>
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-5 py-12">
+      <p className="text-center text-sm text-muted">착각 지수</p>
 
-      <h1 className="mt-3 text-4xl font-bold tracking-tight">
-        착각 지수 <span className="text-accent">{score.illusions}</span>
+      <p className="mt-2 text-center text-7xl font-bold tracking-tight">
+        <span className={score.illusions > 0 ? "text-accent" : ""}>{score.illusions}</span>
         <span className="text-muted">/{score.total}</span>
-      </h1>
+      </p>
 
-      <p className="mt-4 text-lg leading-relaxed text-muted">{verdict(score)}</p>
-
-      {/* 이모지 격자 — 공유 텍스트에 들어가는 것과 동일하다 */}
-      <div className="mt-8 rounded-2xl border border-border bg-card p-5">
-        <div className="text-center text-3xl tracking-[0.2em]" aria-hidden>
-          {session.order
-            .map((id) => byWord.get(id))
-            .filter(Boolean)
-            .map((a) => (
-              <span key={a!.wordId}>{cellEmoji(a!)}</span>
-            ))}
-        </div>
-        <p className="sr-only">
-          총 {score.total}문항 중 안다고 답하고 틀린 것이 {score.illusions}개입니다.
-        </p>
-
-        <ul className="mt-5 flex flex-col gap-1.5">
-          {LEGEND.map((l) => (
-            <li key={l.emoji} className="flex items-center gap-2 text-sm text-muted">
-              <span aria-hidden>{l.emoji}</span>
-              <span>{l.label}</span>
-            </li>
-          ))}
-        </ul>
+      <div className="mt-8 text-center text-4xl tracking-[0.15em]" aria-hidden>
+        {ordered.map((a) => (
+          <span key={a.wordId}>{cellEmoji(a)}</span>
+        ))}
       </div>
+      <p className="sr-only">
+        {score.total}문항 중 안다고 답하고 틀린 것이 {score.illusions}개입니다.
+      </p>
+
+      <p className="mt-5 text-center text-xs text-muted">{LEGEND}</p>
+
+      <p className="mt-8 text-center text-lg">{verdict(score)}</p>
 
       {illusionWords.length > 0 && (
-        <section className="mt-8">
-          <h2 className="mb-2 text-sm font-semibold text-muted">안다고 착각한 단어</h2>
-          <p className="text-lg leading-relaxed">{illusionWords.join(", ")}</p>
-        </section>
+        <p className="mt-2 text-center text-lg font-semibold text-accent">
+          {illusionWords.join(", ")}
+        </p>
       )}
 
-      <div className="mt-10 flex flex-col gap-2.5">
-        <ShareButton
-          text={buildShareText(score, shareUrl)}
-          label="내 결과 공유하기"
-          kind="result"
-        />
+      <div className="mt-12 flex flex-col gap-2.5">
+        <ShareButton text={buildShareText(score, shareUrl)} label="결과 공유" kind="result" />
         <button
           type="button"
           onClick={handleRetry}
-          className="w-full rounded-xl border border-border px-5 py-3.5 font-medium transition-colors hover:border-muted"
+          className="w-full rounded-xl border border-border px-5 py-4 font-medium transition-colors hover:border-foreground"
         >
-          처음부터 다시 하기
+          다시 하기
         </button>
       </div>
-
-      <p className="mt-6 text-center text-xs leading-relaxed text-muted">
-        공유 텍스트에는 단어도 정답도 들어가지 않습니다.
-      </p>
     </main>
   );
 }

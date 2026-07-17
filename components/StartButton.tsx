@@ -38,7 +38,7 @@ export default function StartButton({ startWordId }: { startWordId: string }) {
       onClick={handleStart}
       className="w-full rounded-xl bg-foreground px-5 py-4 text-base font-medium text-background transition-opacity hover:opacity-90"
     >
-      30초 만에 확인하기
+      시작
     </button>
   );
 }

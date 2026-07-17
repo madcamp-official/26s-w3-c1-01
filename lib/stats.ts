@@ -17,12 +17,3 @@ export async function getWordStats(wordId: string): Promise<WordStats | null> {
   // 나중: return fetch(`/api/stats/${wordId}`).then(r => r.json())
   return SEED_STATS[wordId] ?? null;
 }
-
-/** choiceId → 백분율(0~100). 반올림 오차는 무시한다. */
-export function toPercentages(stats: WordStats): Record<string, number> {
-  const total = Object.values(stats.choiceCounts).reduce((a, b) => a + b, 0);
-  if (total === 0) return {};
-  return Object.fromEntries(
-    Object.entries(stats.choiceCounts).map(([id, n]) => [id, Math.round((n / total) * 100)]),
-  );
-}
