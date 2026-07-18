@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Hands_free_controller</string>
+    <string name="accessibility_service_description">Hands-free controller input service</string>
+</resources>
