@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HandsFree Voice Engine (Part B)</string>
+    <string name="start_listening">인식 시작</string>
+    <string name="stop_listening">인식 중지</string>
+    <string name="log_placeholder">VoiceCommandEvent 로그가 여기에 표시됩니다.</string>
+    <string name="mic_permission_denied">마이크 권한이 거부되었습니다.</string>
+</resources>
