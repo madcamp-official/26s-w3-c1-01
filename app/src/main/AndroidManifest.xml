@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- 전면 카메라가 없는 기기에는 설치 의미가 없지만, required=false로 두어
+         카메라 없는 기기에서도 설치는 되게 한다(에뮬레이터 디버깅 대비) -->
+    <uses-feature
+        android:name="android.hardware.camera.front"
+        android:required="false" />
+
+    <application
+        android:allowBackup="false"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Handsfree">
+
+        <!-- A파트 개발/검증 전용 화면. 통합 시 D의 오버레이로 대체되고 이 액티비티는 사라진다 -->
+        <activity
+            android:name=".debug.TrackerDebugActivity"
+            android:exported="true"
+            android:screenOrientation="fullSensor">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
