@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/server/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -19,6 +20,7 @@
 
 # production
 /build
+/server/dist
 
 # misc
 .DS_Store
@@ -32,6 +34,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# 채워야 할 항목이 뭔지는 공유해야 한다. 값이 아니라 목록이라 안전하다.
+!.env.example
 
 # vercel
 .vercel

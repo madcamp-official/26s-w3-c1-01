@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 백엔드는 별도 패키지다(server/tsconfig.json). 브라우저 전제가 깔린
+    // next 규칙을 노드 코드에 적용하면 맞지도 않는 경고만 나온다.
+    "server/**",
   ]),
 ]);
 

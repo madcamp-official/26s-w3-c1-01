@@ -1,5 +1,5 @@
 import { FEATURED_WORD_ID, WORDS, getWord } from "@/data/words";
-import { getWordStats, STATS_ARE_PLACEHOLDER } from "@/lib/stats";
+import { getWordStats } from "@/lib/stats";
 import LandingAsk from "@/components/LandingAsk";
 
 /**
@@ -27,11 +27,11 @@ export default async function Home() {
 
       <p className="mt-5 text-center text-xl">설명할 수 있나요?</p>
 
+      {/* 표본이 30명을 넘기 전까지는 이 줄이 아예 없다. 지어낸 수치 대신 침묵이 맞다. */}
       {rate !== null && (
         <p className="mt-2 text-center text-sm text-muted">
           안다고 답한 사람 중 <strong className="font-semibold text-foreground">{rate}%</strong>만
           설명해냈습니다
-          {STATS_ARE_PLACEHOLDER && " (예시 수치)"}
         </p>
       )}
 

@@ -1,0 +1,31 @@
+# Caddy가 Let's Encrypt 인증서를 알아서 발급하고 갱신한다. 설정은 이게 전부다.
+#
+# ⚠️ HTTPS는 선택이 아니다. 공유 버튼(Web Share API)과 클립보드 복사가
+# secure context에서만 동작해서, http로 띄우면 이 앱의 핵심 기능이 조용히 죽는다.
+#
+# ⚠️ 인증서는 도메인으로만 발급된다. IP 주소로는 안 된다. SITE_DOMAIN에 IP를 넣으면
+# Caddy가 인증서를 못 받고 사이트가 안 뜬다. 도메인이 없으면 sslip.io를 쓸 것
+# (예: 1-2-3-4.sslip.io — IP를 도메인처럼 만들어 주는 공개 DNS).
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	# /api/* 는 백엔드로. 이 한 줄 덕분에 프론트와 API가 동일 출처가 되고,
+	# CORS도 혼합 콘텐츠 차단도 애초에 발생하지 않는다.
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	log {
+		output stdout
+	}
+}

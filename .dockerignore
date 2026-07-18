@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+server
+docs
+CLAUDE.md
+.env
+.env.*
+!.env.example

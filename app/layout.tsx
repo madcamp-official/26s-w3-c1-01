@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-// 배포 도메인이 정해지면 Vercel 환경변수 NEXT_PUBLIC_SITE_URL에 넣는다.
-// OG 이미지·공유 링크의 절대경로 계산에 쓰인다.
+// OG 이미지·공유 링크의 절대경로 계산에 쓰인다. .env의 NEXT_PUBLIC_SITE_URL이
+// compose의 build arg로 들어온다.
+// ⚠️ NEXT_PUBLIC_*은 빌드 시점에 번들에 박힌다. 바꿨으면 재빌드해야 한다.
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 const title = "내가 안다고 착각한 단어";

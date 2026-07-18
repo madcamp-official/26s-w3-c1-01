@@ -2,7 +2,7 @@
 
 import { matchKeywords, type Word } from "@/data/words";
 import type { Judgment } from "@/lib/session";
-import { STATS_ARE_PLACEHOLDER, type WordStats } from "@/lib/stats";
+import type { WordStats } from "@/lib/stats";
 
 /**
  * 정답 공개 + 자기판정.
@@ -74,10 +74,10 @@ export default function RevealPanel({
         </ul>
       </section>
 
+      {/* stats가 null이면 통째로 사라진다. 표본이 모자란다는 뜻이지 에러가 아니다. */}
       {stats && (
         <p className="text-xs text-muted">
           안다고 답한 사람 중 {Math.round(stats.confidentCorrectRate * 100)}%만 설명해냈습니다
-          {STATS_ARE_PLACEHOLDER && " (예시 수치)"}
         </p>
       )}
 
