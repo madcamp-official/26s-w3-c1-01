@@ -143,7 +143,9 @@ class VoiceRecognitionEngine(
             consecutiveHardErrors++
             if (consecutiveHardErrors >= OFFLINE_FALLBACK_THRESHOLD) {
                 useOffline = false
-                Log.w(TAG, "오프라인 인식 실패($consecutiveHardErrors회) — 온라인으로 전환한다. 기기에 한국어 오프라인 모델이 없는 것으로 보인다")
+                // 한글은 Kotlin에서 식별자로 인정돼서 $변수 뒤에 바로 붙이면
+                // 통째로 변수명으로 읽힌다. 중괄호로 끊어야 한다
+                Log.w(TAG, "오프라인 인식 실패(${consecutiveHardErrors}회) — 온라인으로 전환한다. 기기에 한국어 오프라인 모델이 없는 것으로 보인다")
             }
         }
         scheduleRestart()
