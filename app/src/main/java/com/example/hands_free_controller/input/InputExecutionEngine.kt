@@ -118,7 +118,8 @@ class InputExecutionEngine(
             startX = swipe.startX,
             startY = swipe.startY,
             endX = swipe.endX,
-            endY = swipe.endY
+            endY = swipe.endY,
+            durationMs = SWIPE_DURATION_MS,
         ) { gestureSuccess ->
             onResult(
                 command.result(
@@ -297,7 +298,7 @@ class InputExecutionEngine(
         screenHeight: Int
     ): SwipeCoordinates {
         val verticalDistance = screenHeight * scrollRatio(commandId)
-        val horizontalDistance = screenWidth * 0.5f
+        val horizontalDistance = screenWidth * HORIZONTAL_SWIPE_RATIO
 
         val (dx, dy) = when (commandId) {
             CommandId.SCROLL_DOWN,
@@ -311,26 +312,55 @@ class InputExecutionEngine(
             else -> 0f to 0f
         }
 
-        val startX = clamp(centerX - dx / 2f, screenWidth)
-        val startY = clamp(centerY - dy / 2f, screenHeight)
-        val endX = clamp(centerX + dx / 2f, screenWidth)
-        val endY = clamp(centerY + dy / 2f, screenHeight)
+        val (startX, endX) = fitSegment(centerX, dx, screenWidth)
+        val (startY, endY) = fitSegment(centerY, dy, screenHeight)
 
         return SwipeCoordinates(startX, startY, endX, endY)
     }
 
+    /**
+     * 포인터를 중심으로 [delta]만큼의 구간을 만들되, 화면 밖으로 나가면 **잘라내지 않고
+     * 통째로 밀어 넣는다.**
+     *
+     * 예전에는 양 끝을 각각 화면 안으로 clamp했는데, 그러면 포인터가 화면 가장자리에
+     * 있을 때 스와이프 길이가 조용히 짧아진다. 같은 명령인데 포인터 위치에 따라
+     * 넘어가기도 하고 안 넘어가기도 해서 원인을 짐작하기 어렵다.
+     *
+     * 가장자리에 여백을 두는 이유는 화면 맨 끝에서 시작하는 제스처가 시스템의
+     * 뒤로가기/홈 제스처로 가로채이기 때문이다.
+     */
+    private fun fitSegment(center: Float, delta: Float, bound: Int): Pair<Float, Float> {
+        val margin = bound * EDGE_MARGIN_RATIO
+        val min = margin
+        val max = bound - margin
+        // 화면보다 긴 스와이프는 만들 수 없다
+        val d = delta.coerceIn(-(max - min), max - min)
+
+        val start = center - d / 2f
+        val end = center + d / 2f
+        val shift = when {
+            minOf(start, end) < min -> min - minOf(start, end)
+            maxOf(start, end) > max -> max - maxOf(start, end)
+            else -> 0f
+        }
+        return (start + shift) to (end + shift)
+    }
+
+    /**
+     * 스크롤 한 번에 화면의 몇 배를 움직일지.
+     *
+     * 실기기에서 기본값(0.5)으로는 "화면이 안 넘어간다"는 평가가 나왔다. 거리도
+     * 문제였지만 **속도가 더 컸다** — 스와이프 시간을 줄여 플링으로 인식되게 한 것과
+     * 함께 봐야 한다([GestureAccessibilityService]의 duration).
+     */
     private fun scrollRatio(commandId: CommandId): Float {
         return when (commandId) {
             CommandId.SCROLL_DOWN_SMALL,
-            CommandId.SCROLL_UP_SMALL -> 0.2f
+            CommandId.SCROLL_UP_SMALL -> 0.35f
             CommandId.SCROLL_DOWN_LARGE,
-            CommandId.SCROLL_UP_LARGE -> 0.8f
-            else -> 0.5f
+            CommandId.SCROLL_UP_LARGE -> 0.9f
+            else -> 0.65f
         }
-    }
-
-    private fun clamp(value: Float, upperBound: Int): Float {
-        return value.coerceIn(1f, (upperBound - 1).toFloat())
     }
 
     private fun getScreenSize(): Pair<Int, Int> {
@@ -384,4 +414,34 @@ class InputExecutionEngine(
         val endX: Float,
         val endY: Float
     )
+
+    private companion object {
+        /**
+         * 스와이프에 걸리는 시간. **거리보다 이 값이 중요하다.**
+         *
+         * 안드로이드는 손가락을 뗀 순간의 **속도**로 플링(관성 스크롤/페이지 넘김)
+         * 여부를 판정한다. 320ms로 천천히 끌면 화면이 손가락을 따라 조금 움직였다가
+         * 임계값을 못 넘고 **제자리로 돌아온다** — 실기기에서 "조금 움직이다 말고
+         * 화면이 안 넘어간다"는 증상이 이거였다.
+         *
+         * 너무 줄이면(50ms 미만) 이벤트가 몇 개 안 생겨서 속도 계산이 불안정해진다.
+         */
+        const val SWIPE_DURATION_MS = 160L
+
+        /**
+         * 좌우 스와이프(NEXT/PREV) 거리. 화면 폭 대비 비율.
+         *
+         * 페이지 넘김은 보통 "화면 폭의 절반 이상을 넘겼는가" 또는 "속도가 충분한가"로
+         * 판정한다. 0.5는 경계선이라 넘어갈 때와 아닐 때가 갈렸다.
+         */
+        const val HORIZONTAL_SWIPE_RATIO = 0.75f
+
+        /**
+         * 화면 가장자리에서 띄울 여백 비율.
+         *
+         * 화면 맨 끝에서 시작하는 제스처는 시스템의 뒤로가기/홈 제스처로 가로채여
+         * 앱에 전달되지 않는다.
+         */
+        const val EDGE_MARGIN_RATIO = 0.05f
+    }
 }
