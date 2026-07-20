@@ -1,0 +1,12 @@
+# 줄바꿈을 LF로 고정한다.
+#
+# 통합 작업 중 스크립트로 파일을 일괄 수정하다가 Windows 기본 줄바꿈(CRLF)으로
+# 저장돼, 한 줄만 바꾼 커밋이 파일 전체가 바뀐 것처럼 보인 적이 있다.
+# 그러면 팀원이 diff를 읽을 수 없고 이후 병합에서 충돌이 커진다.
+* text=auto eol=lf
+
+# 바이너리는 손대지 않는다
+*.task binary
+*.jar binary
+*.webp binary
+*.png binary
