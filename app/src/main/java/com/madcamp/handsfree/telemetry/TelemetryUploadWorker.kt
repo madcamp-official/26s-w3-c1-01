@@ -23,7 +23,7 @@ class TelemetryUploadWorker(
 
     override suspend fun doWork(): Result {
         val queue = LocalTelemetryQueue(applicationContext)
-        val events = queue.peek()
+        val events = queue.peek(MAX_UPLOAD_EVENTS)
         if (events.isEmpty()) return Result.success()
 
         val uploader: TelemetryUploader = if (inputData.getBoolean(KEY_USE_LOGCAT_UPLOADER, false)) {
@@ -48,6 +48,7 @@ class TelemetryUploadWorker(
         private const val UNIQUE_DAILY_UPLOAD = "daily_telemetry_upload_9am"
         private const val UNIQUE_MANUAL_UPLOAD = "manual_telemetry_upload"
         private const val KEY_USE_LOGCAT_UPLOADER = "use_logcat_uploader"
+        private const val MAX_UPLOAD_EVENTS = 100
 
         fun scheduleDailyAt9(context: Context) {
             val request = PeriodicWorkRequestBuilder<TelemetryUploadWorker>(1, TimeUnit.DAYS)
