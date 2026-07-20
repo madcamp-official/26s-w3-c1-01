@@ -134,7 +134,15 @@ object ControllerPipeline {
         // 음성 인식이 반복 실패해도 앱에서 빠져나올 수 있어야 한다(FR-005)
         OverlayBus.onManualUnlock = { d.voice.inject(CommandId.UNLOCK) }
 
-        service.lifecycleScope.launch { orchestrator.state.collect { OverlayBus.publishState(it) } }
+        // 제어 명령(STOP/RESUME/LOCK/UNLOCK)은 상태만 바꾸고 C로 가지 않아서
+        // 실행 결과도 폐기 사유도 남지 않는다. 즉 상태 전이를 안 찍으면
+        // **"잠금"이 먹었는지 확인할 방법이 아예 없다.**
+        service.lifecycleScope.launch {
+            orchestrator.state.collect { state ->
+                Log.i(TAG, "상태 → $state")
+                OverlayBus.publishState(state)
+            }
+        }
         service.lifecycleScope.launch { orchestrator.pointerFrames.collect { OverlayBus.publishPointer(it) } }
         service.lifecycleScope.launch {
             orchestrator.executionResults.collect { result ->
