@@ -3,6 +3,7 @@ package com.example.hands_free_controller.input
 import android.content.Context
 import android.os.Build
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.WindowManager
 import com.example.hands_free_controller.service.GestureAccessibilityService
 import com.mobileconductor.core.model.CommandId
@@ -113,13 +114,26 @@ class InputExecutionEngine(
         val screen = getScreenSize()
         val point = toScreenPoint(pointer.frame, screen)
         val swipe = buildSwipe(command.commandId, point.x, point.y, screen.first, screen.second)
+        val duration = swipeDurationFor(command.commandId)
+
+        // 스와이프가 "성공"으로 찍히는데도 화면이 안 움직이는 상황이 반복돼서,
+        // 실제로 어떤 좌표가 주입되는지 남긴다. 화면 크기·포인터 좌표를 손으로
+        // 계산해 추론하다 두 번 틀렸다 — 값을 더 바꾸기 전에 실측이 먼저다.
+        Log.i(
+            TAG,
+            "%s 화면=%dx%d 포인터=(%.0f, %.0f) 스와이프=(%.0f, %.0f)->(%.0f, %.0f) %dms".format(
+                command.commandId, screen.first, screen.second,
+                point.x, point.y,
+                swipe.startX, swipe.startY, swipe.endX, swipe.endY, duration,
+            ),
+        )
 
         service.swipe(
             startX = swipe.startX,
             startY = swipe.startY,
             endX = swipe.endX,
             endY = swipe.endY,
-            durationMs = swipeDurationFor(command.commandId),
+            durationMs = duration,
         ) { gestureSuccess ->
             onResult(
                 command.result(
@@ -431,6 +445,8 @@ class InputExecutionEngine(
     )
 
     private companion object {
+        const val TAG = "HF-Input"
+
         /**
          * 스크롤(위/아래) 스와이프 시간.
          *
