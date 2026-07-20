@@ -3,9 +3,11 @@ package com.mobileconductor.overlay
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.provider.Settings
 import android.view.WindowManager
@@ -102,6 +104,21 @@ class OverlayService : LifecycleService() {
 
     private fun canDrawOverlays(): Boolean = Settings.canDrawOverlays(this)
 
+    /**
+     * 알림의 정지 버튼에서 들어오는 요청을 처리한다.
+     *
+     * 포그라운드 서비스 알림은 밀어서 지울 수 없고 앱을 나가서 쓰는 게 목적이라,
+     * **알림에 정지 수단이 없으면 강제 중지 말고는 끌 방법이 없다.**
+     */
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
+        if (intent?.action == ACTION_STOP) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        return START_STICKY
+    }
+
     private fun startAsForeground() {
         val channelId = "overlay_controller"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -110,10 +127,23 @@ class OverlayService : LifecycleService() {
                 NotificationChannel(channelId, "Controller Overlay", NotificationManager.IMPORTANCE_LOW)
             )
         }
+        val stopIntent = PendingIntent.getService(
+            this,
+            0,
+            Intent(this, OverlayService::class.java).setAction(ACTION_STOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
         val notification: Notification = Notification.Builder(this, channelId)
-            .setContentTitle("Mobile Conductor")
-            .setContentText("핸즈프리 컨트롤러 오버레이 실행 중")
+            .setContentTitle("핸즈프리 컨트롤러")
+            .setContentText("카메라·음성으로 조작 중")
             .setSmallIcon(android.R.drawable.ic_menu_view)
+            .addAction(
+                Notification.Action.Builder(
+                    Icon.createWithResource(this, android.R.drawable.ic_menu_close_clear_cancel),
+                    "정지",
+                    stopIntent,
+                ).build()
+            )
             .build()
         startForeground(NOTIFICATION_ID, notification)
     }
@@ -129,6 +159,7 @@ class OverlayService : LifecycleService() {
 
     companion object {
         private const val NOTIFICATION_ID = 1001
+        private const val ACTION_STOP = "com.madcamp.handsfree.STOP_CONTROLLER"
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, OverlayService::class.java))

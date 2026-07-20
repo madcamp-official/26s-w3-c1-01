@@ -11,6 +11,8 @@
     <string name="btn_overlay">2. 오버레이 권한 / 시작</string>
     <string name="btn_start">3. 캘리브레이션 시작 / 다시 하기</string>
 
+    <string name="btn_stop">정지 (카메라·마이크 끄기)</string>
+
     <string name="status_idle">대기 중</string>
     <string name="status_calibrating">캘리브레이션 진행 중 — 화면 안내에 따라 각 지점을 바라보세요</string>
     <string name="status_active">동작 중 — 이 화면을 벗어나도 오버레이가 유지됩니다</string>

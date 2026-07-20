@@ -50,6 +50,11 @@ class ControllerActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btn_start).setOnClickListener {
             permissions.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
         }
+        // 알림의 정지 버튼과 같은 동작. 서비스가 죽으면 파이프라인도 같이 정리된다.
+        findViewById<Button>(R.id.btn_stop).setOnClickListener {
+            OverlayService.stop(this)
+            statusText.setText(R.string.status_idle)
+        }
 
         lifecycleScope.launch {
             ControllerPipeline.calibrating.collect { running ->
