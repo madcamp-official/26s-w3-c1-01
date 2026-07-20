@@ -388,7 +388,7 @@ class InputExecutionEngine(
             CommandId.SCROLL_UP_SMALL -> 0.35f
             CommandId.SCROLL_DOWN_LARGE,
             CommandId.SCROLL_UP_LARGE -> 0.9f
-            else -> 0.65f
+            else -> 0.9f
         }
     }
 
