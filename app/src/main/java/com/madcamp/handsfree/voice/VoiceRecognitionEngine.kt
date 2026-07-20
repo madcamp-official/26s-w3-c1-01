@@ -76,8 +76,32 @@ class VoiceRecognitionEngine(
         speechRecognizer = null
     }
 
+    /**
+     * 인식기가 응답 자체를 안 할 때 깨우는 감시자.
+     *
+     * **오프라인 모델이 없는 기기에서 SpeechRecognizer는 에러도 안 주고 조용히 죽는다.**
+     * 실기기(갤럭시 S7)에서 `EXTRA_PREFER_OFFLINE`을 켠 뒤 28초 동안 콜백이 하나도
+     * 오지 않았다. onError 기반 폴백만 있으면 이 상태를 영원히 못 벗어난다.
+     */
+    private val unresponsiveWatchdog = Runnable { onRecognizerUnresponsive() }
+
+    private fun onRecognizerUnresponsive() {
+        if (!isListening) return
+        if (useOffline) {
+            useOffline = false
+            Log.w(TAG, "오프라인 인식기가 응답하지 않는다(에러조차 없음) — 온라인으로 전환한다")
+        } else {
+            Log.w(TAG, "인식기가 응답하지 않는다 — 재시작한다")
+        }
+        // 죽은 세션이 남아 있으면 다음 startListening이 ERROR_BUSY로 막힌다
+        speechRecognizer?.cancel()
+        scheduleRestart()
+    }
+
     private fun listenOnce() {
         if (!isListening) return
+        mainHandler.removeCallbacks(unresponsiveWatchdog)
+        mainHandler.postDelayed(unresponsiveWatchdog, UNRESPONSIVE_TIMEOUT_MS)
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
@@ -155,10 +179,21 @@ class VoiceRecognitionEngine(
     }
 
     private val recognitionListener = object : RecognitionListener {
-        override fun onResults(results: Bundle) = handleResults(results)
-        override fun onError(error: Int) = handleError(error)
+        override fun onResults(results: Bundle) {
+            mainHandler.removeCallbacks(unresponsiveWatchdog)
+            handleResults(results)
+        }
 
-        override fun onReadyForSpeech(params: Bundle?) {}
+        override fun onError(error: Int) {
+            mainHandler.removeCallbacks(unresponsiveWatchdog)
+            handleError(error)
+        }
+
+        /** 인식기가 살아 있다는 유일한 확실한 신호. 감시자를 해제한다 */
+        override fun onReadyForSpeech(params: Bundle?) {
+            mainHandler.removeCallbacks(unresponsiveWatchdog)
+        }
+
         override fun onBeginningOfSpeech() {}
         override fun onRmsChanged(rmsdB: Float) {}
         override fun onBufferReceived(buffer: ByteArray?) {}
@@ -176,6 +211,12 @@ class VoiceRecognitionEngine(
 
         /** 이만큼 연속 실패하면 온라인으로 되돌린다 */
         private const val OFFLINE_FALLBACK_THRESHOLD = 3
+
+        /**
+         * startListening 후 이 시간 안에 onReadyForSpeech가 안 오면 죽은 것으로 본다.
+         * 정상이면 1초 안에 온다 — 5초는 느린 기기까지 감안한 여유값이다.
+         */
+        private const val UNRESPONSIVE_TIMEOUT_MS = 5_000L
 
         /**
          * "오프라인 모델이 없다"로 해석할 에러들.

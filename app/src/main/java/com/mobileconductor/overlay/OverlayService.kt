@@ -34,8 +34,6 @@ class OverlayService : LifecycleService() {
     private lateinit var layoutParams: WindowManager.LayoutParams
     private var added = false
 
-    /** 정지가 사용자 요청이었는지. onDestroy에서 원인을 구분하는 데만 쓴다 */
-    private var stoppedByUser = false
 
     override fun onCreate() {
         super.onCreate()
@@ -187,11 +185,24 @@ class OverlayService : LifecycleService() {
         private const val NOTIFICATION_ID = 1001
         private const val ACTION_STOP = "com.madcamp.handsfree.STOP_CONTROLLER"
 
+        /**
+         * 정지가 사용자 요청이었는지. onDestroy에서 원인을 구분하는 데만 쓴다.
+         * 앱 버튼([stop])과 알림 버튼(ACTION_STOP) 두 경로가 모두 여기를 세운다.
+         */
+        @Volatile
+        private var stoppedByUser = false
+
         fun start(context: Context) {
+            stoppedByUser = false
             context.startForegroundService(Intent(context, OverlayService::class.java))
         }
 
         fun stop(context: Context) {
+            // stopService()는 onStartCommand를 거치지 않아서 서비스 안에서는
+            // 사용자가 껐는지 알 수 없다. 여기서 표시해 두지 않으면 onDestroy가
+            // 정상 종료를 "시스템이 죽였다"로 잘못 보고한다(실제로 그래서 삼성
+            // 배터리 정책을 한참 의심했다).
+            stoppedByUser = true
             context.stopService(Intent(context, OverlayService::class.java))
         }
     }
