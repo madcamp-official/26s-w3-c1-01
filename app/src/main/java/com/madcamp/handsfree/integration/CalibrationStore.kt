@@ -20,7 +20,16 @@ import com.mobileconductor.core.model.Level
  */
 object CalibrationStore {
 
+    /**
+     * 프로파일은 **모드별로 따로 저장한다**(Phase 3). FACE의 얼굴 각도 범위와 HAND의 손
+     * 도달 범위는 의미가 완전히 달라서 한 저장소를 공유하면 안 된다. prefs 파일명을
+     * 모드로 분리한다: `calibration_face` / `calibration_hand`.
+     */
     private const val PREFS = "calibration"
+
+    /** 마지막으로 선택한 입력 모드. 재시작 시 같은 모드로 부팅한다. */
+    private const val MODE_PREFS = "input_mode"
+    private const val KEY_LAST_MODE = "lastMode"
 
     /**
      * 저장 형식/각도 규약 버전.
@@ -47,8 +56,8 @@ object CalibrationStore {
 
     private const val TAG = "HF-CalibStore"
 
-    fun save(context: Context, profile: CalibrationProfile) {
-        prefs(context).edit()
+    fun save(context: Context, mode: InputMode, profile: CalibrationProfile) {
+        prefs(context, mode).edit()
             .putInt(KEY_VERSION, VERSION)
             .putString(KEY_ID, profile.profileId)
             .putString(KEY_POINTS, encodePoints(profile.referencePoints))
@@ -61,7 +70,7 @@ object CalibrationStore {
             .putString(KEY_CREATED, profile.createdAt)
             .putString(KEY_UPDATED, profile.updatedAt)
             .apply()
-        Log.i(TAG, "프로파일 저장 — ${profile.profileId}")
+        Log.i(TAG, "프로파일 저장 — ${profile.profileId} ($mode)")
     }
 
     /**
@@ -70,12 +79,12 @@ object CalibrationStore {
      * 깨진 값으로 매핑하면 포인터가 화면 구석에 처박혀서 "앱이 고장 났다"로 보인다.
      * 그럴 바에는 재보정을 시키는 게 낫다.
      */
-    fun load(context: Context): CalibrationProfile? {
-        val p = prefs(context)
+    fun load(context: Context, mode: InputMode): CalibrationProfile? {
+        val p = prefs(context, mode)
         val version = p.getInt(KEY_VERSION, 0)
         if (version != VERSION) {
-            Log.i(TAG, "각도 규약이 바뀌어 저장된 프로파일을 버린다 (v$version → v$VERSION) — 재보정 필요")
-            clear(context)
+            Log.i(TAG, "각도 규약이 바뀌어 저장된 프로파일을 버린다 (v$version → v$VERSION, $mode) — 재보정 필요")
+            clear(context, mode)
             return null
         }
         val id = p.getString(KEY_ID, null) ?: return null
@@ -95,16 +104,29 @@ object CalibrationStore {
             )
         } catch (e: Exception) {
             // referencePoints가 9개가 아니면 CalibrationProfile의 init require가 던진다.
-            Log.w(TAG, "저장된 프로파일을 읽지 못해 폐기한다 — 재보정 필요", e)
-            clear(context)
+            Log.w(TAG, "저장된 프로파일을 읽지 못해 폐기한다 ($mode) — 재보정 필요", e)
+            clear(context, mode)
             null
         }
     }
 
-    fun clear(context: Context) = prefs(context).edit().clear().apply()
+    fun clear(context: Context, mode: InputMode) = prefs(context, mode).edit().clear().apply()
 
-    private fun prefs(context: Context) =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private fun prefs(context: Context, mode: InputMode) =
+        context.getSharedPreferences("${PREFS}_${mode.name.lowercase()}", Context.MODE_PRIVATE)
+
+    // ── 마지막 선택 모드 영속화 ───────────────────────────────
+
+    fun saveMode(context: Context, mode: InputMode) {
+        context.getSharedPreferences(MODE_PREFS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_LAST_MODE, mode.name).apply()
+    }
+
+    fun loadMode(context: Context): InputMode {
+        val name = context.getSharedPreferences(MODE_PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_LAST_MODE, null) ?: return InputMode.FACE
+        return runCatching { InputMode.valueOf(name) }.getOrDefault(InputMode.FACE)
+    }
 
     private fun encodePoints(points: List<FaceOrientationValue>): String =
         points.joinToString(";") { "${it.yaw}:${it.pitch}" }

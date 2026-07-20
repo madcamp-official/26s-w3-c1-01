@@ -1,8 +1,6 @@
 package com.madcamp.handsfree.tracking
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Matrix
 import android.os.SystemClock
 import android.util.Log
 import androidx.camera.core.CameraSelector
@@ -36,7 +34,7 @@ import java.util.concurrent.Executors
  */
 class FaceTracker(
     private val context: Context,
-) {
+) : PointerTracker {
 
     /** A → C, A → D */
     private val _pointerFrames = MutableSharedFlow<PointerFrame>(
@@ -45,7 +43,7 @@ class FaceTracker(
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
-    val pointerFrames: SharedFlow<PointerFrame> = _pointerFrames.asSharedFlow()
+    override val pointerFrames: SharedFlow<PointerFrame> = _pointerFrames.asSharedFlow()
 
     /** A → D (캘리브레이션 전용). 프로파일이 없어도 방출된다 */
     private val _rawOrientations = MutableSharedFlow<RawFaceOrientation>(
@@ -53,10 +51,10 @@ class FaceTracker(
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
-    val rawOrientations: SharedFlow<RawFaceOrientation> = _rawOrientations.asSharedFlow()
+    override val rawOrientations: SharedFlow<RawFaceOrientation> = _rawOrientations.asSharedFlow()
 
     private val _errors = MutableSharedFlow<TrackerError>(replay = 1)
-    val errors: SharedFlow<TrackerError> = _errors.asSharedFlow()
+    override val errors: SharedFlow<TrackerError> = _errors.asSharedFlow()
 
     private val mapper = PointerMapper()
     private var landmarker: FaceLandmarker? = null
@@ -64,7 +62,7 @@ class FaceTracker(
 
     /** 기기 회전은 A가 흡수한다. 소비 측은 가로/세로를 신경 쓰지 않는다 (OPEN_ISSUES #5) */
     @Volatile
-    var displayRotationDegrees: Int = 0
+    override var displayRotationDegrees: Int = 0
 
     private var lastLowLight = false
 
@@ -82,14 +80,14 @@ class FaceTracker(
     var lastLandmarkCount: Int = 0
         private set
 
-    fun updateProfile(profile: CalibrationProfile) = mapper.updateProfile(profile)
+    override fun updateProfile(profile: CalibrationProfile) = mapper.updateProfile(profile)
 
     /** 디버그 화면에서 시선 보조 세기를 바꿔 보기 위한 통로. 값이 정해지면 없앤다 */
     var gazeAssistWeight: Float
         get() = mapper.gazeAssistWeight
         set(value) { mapper.gazeAssistWeight = value }
 
-    fun start(lifecycleOwner: LifecycleOwner) {
+    override fun start(lifecycleOwner: LifecycleOwner) {
         if (!initLandmarker()) return
 
         val exec = Executors.newSingleThreadExecutor().also { executor = it }
@@ -125,7 +123,7 @@ class FaceTracker(
         }, ContextCompat.getMainExecutor(context))
     }
 
-    fun stop() {
+    override fun stop() {
         executor?.shutdown()
         executor = null
         landmarker?.close()
@@ -255,54 +253,3 @@ class FaceTracker(
         const val LOW_LIGHT_CHECK_INTERVAL = 10
     }
 }
-
-/** ImageProxy(RGBA_8888) → 회전 보정된 Bitmap */
-private fun ImageProxy.toUprightBitmap(): Bitmap {
-    val buffer = planes[0].buffer
-    val pixelStride = planes[0].pixelStride
-    val rowStride = planes[0].rowStride
-    val rowPadding = rowStride - pixelStride * width
-
-    val bitmap = Bitmap.createBitmap(
-        width + rowPadding / pixelStride,
-        height,
-        Bitmap.Config.ARGB_8888,
-    )
-    buffer.rewind()
-    bitmap.copyPixelsFromBuffer(buffer)
-
-    val rotation = imageInfo.rotationDegrees
-    if (rotation == 0) return bitmap
-
-    val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
-    return Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true)
-}
-
-/**
- * 프레임 평균 휘도로 저조도를 판정한다.
- *
- * 명세서는 저조도를 confidence에 섞으라고 했지만 둘은 다른 신호다 —
- * 어두워도 검출은 잘 되고, 밝아도 얼굴이 기울면 검출이 나빠진다 (OPEN_ISSUES #4).
- */
-private fun Bitmap.isLowLight(): Boolean {
-    // 전체 픽셀을 훑으면 프레임마다 수십만 번 연산이라 fps가 깎인다. 격자로 표본만 본다
-    val step = 16
-    var sum = 0L
-    var count = 0
-    var y = 0
-    while (y < height) {
-        var x = 0
-        while (x < width) {
-            val p = getPixel(x, y)
-            // 정확한 luma 대신 근사. 저조도 판정에 정밀도는 필요 없다
-            sum += ((p shr 16 and 0xFF) * 3 + (p shr 8 and 0xFF) * 6 + (p and 0xFF)) / 10
-            count++
-            x += step
-        }
-        y += step
-    }
-    if (count == 0) return false
-    return sum / count < LOW_LIGHT_LUMA
-}
-
-private const val LOW_LIGHT_LUMA = 60

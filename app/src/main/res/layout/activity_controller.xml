@@ -46,6 +46,13 @@
             android:text="@string/btn_start" />
 
         <Button
+            android:id="@+id/btn_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/btn_mode" />
+
+        <Button
             android:id="@+id/btn_recalibrate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

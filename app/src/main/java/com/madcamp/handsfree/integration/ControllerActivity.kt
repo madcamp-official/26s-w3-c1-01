@@ -78,10 +78,21 @@ class ControllerActivity : AppCompatActivity() {
             permissions.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
         }
         // 저장된 프로파일을 버리고 처음부터 다시 잡는다.
-        // 자세나 거치 위치가 바뀌면 기존 범위가 안 맞는다.
+        // 자세나 거치 위치가 바뀌면 기존 범위가 안 맞는다. (현재 모드의 프로파일만 지운다)
         findViewById<Button>(R.id.btn_recalibrate).setOnClickListener {
-            CalibrationStore.clear(this)
-            ControllerPipeline.runCalibration()
+            ControllerPipeline.recalibrate(this)
+        }
+        // 입력 모드 전환: 얼굴/시선 ↔ 손 동작. 기동 중이면 즉시, 아니면 다음 시작에 반영.
+        val modeButton = findViewById<Button>(R.id.btn_mode)
+        updateModeButton(modeButton)
+        modeButton.setOnClickListener {
+            val target = if (displayedMode() == InputMode.FACE) InputMode.HAND else InputMode.FACE
+            val switched = ControllerPipeline.requestMode(applicationContext, target)
+            updateModeButton(modeButton)
+            statusText.text = getString(
+                if (switched) R.string.mode_switched else R.string.mode_pending,
+                modeLabel(target),
+            )
         }
         // 알림의 정지 버튼과 같은 동작. 서비스가 죽으면 파이프라인도 같이 정리된다.
         findViewById<Button>(R.id.btn_stop).setOnClickListener {
@@ -145,6 +156,18 @@ class ControllerActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    /** 표시용 현재 모드. 기동 중이면 파이프라인, 아니면 저장된 부팅 모드. */
+    private fun displayedMode(): InputMode =
+        if (ControllerPipeline.isRunning) ControllerPipeline.currentMode
+        else CalibrationStore.loadMode(applicationContext)
+
+    private fun modeLabel(mode: InputMode): String =
+        getString(if (mode == InputMode.FACE) R.string.mode_face else R.string.mode_hand)
+
+    private fun updateModeButton(button: Button) {
+        button.text = getString(R.string.btn_mode, modeLabel(displayedMode()))
     }
 
     private fun updateTelemetryStatus() {

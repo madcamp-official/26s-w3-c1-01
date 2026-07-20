@@ -12,6 +12,13 @@
     <string name="btn_recalibrate">캘리브레이션 다시 하기</string>
     <string name="btn_stop">정지 (카메라, 마이크 끄기)</string>
 
+    <!-- 입력 모드 전환 (Phase 3) -->
+    <string name="mode_face">얼굴/시선</string>
+    <string name="mode_hand">손 동작(모션 캡쳐)</string>
+    <string name="btn_mode">입력 모드: %1$s</string>
+    <string name="mode_switched">입력 모드를 %1$s(으)로 바꿉니다. 모드별로 캘리브레이션이 따로 저장됩니다.</string>
+    <string name="mode_pending">시작 전입니다. 다음 시작부터 %1$s 모드로 켜집니다.</string>
+
     <string name="status_idle">대기 중</string>
     <string name="status_calibrating">캘리브레이션 진행 중입니다. 화면 안내에 따라 각 지점을 바라보세요.</string>
     <string name="status_active">동작 중입니다. 이 화면을 벗어나도 오버레이가 유지됩니다.</string>

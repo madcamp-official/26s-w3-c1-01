@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.madcamp.handsfree.telemetry.Telemetry
-import com.madcamp.handsfree.tracking.FaceTracker
 import com.mobileconductor.core.model.CommandId
 import com.mobileconductor.core.model.ControllerState
 import com.mobileconductor.orchestrator.ConductorContainer
@@ -36,11 +35,19 @@ import java.util.Date
  */
 object ControllerPipeline {
 
-    private var tracker: FaceTracker? = null
+    /** 입력 모드 전환·스위처블 소스 소유자(Phase 3). 배타 실행(SPEC §7). */
+    private var modeController: InputModeController? = null
     private var deps: RealConductorDependencies? = null
     private var container: ConductorContainer? = null
     private var calibrationJob: Job? = null
     private var appContext: Context? = null
+
+    /** 카메라 바인딩 수명(서비스). 모드 전환 시 새 트래커를 여기에 바인딩한다. */
+    private var lifecycleOwner: LifecycleService? = null
+
+    /** 현재 입력 모드. Activity 토글이 읽는다. 서비스 미기동 시 저장된 마지막 모드. */
+    val currentMode: InputMode
+        get() = modeController?.mode?.value ?: appContext?.let { CalibrationStore.loadMode(it) } ?: InputMode.FACE
 
     /** 서비스의 lifecycleScope. 서비스가 죽으면 여기 붙은 작업도 같이 취소된다. */
     private var scope: CoroutineScope? = null
@@ -70,42 +77,61 @@ object ControllerPipeline {
     fun start(service: LifecycleService) {
         if (container != null) return
 
-        val t = FaceTracker(service)
-        val d = RealConductorDependencies(service.applicationContext, service.lifecycleScope, t)
+        // 스위처블 소스를 가진 모드 컨트롤러를 한 번 만든다. 오케스트레이터·deps는 이 안정
+        // 소스만 보므로 모드를 바꿔도 재생성되지 않는다(트래커만 갈아끼운다).
+        val mc = InputModeController(service.applicationContext)
+        // 제스처 명령원은 스위처블 랜드마크를 구독한다 — FACE 모드에서는 비어서 침묵한다.
+        val gesture = GestureCommandSource(mc.gestureLandmarks)
+        val d = RealConductorDependencies(
+            context = service.applicationContext,
+            scope = service.lifecycleScope,
+            pointerSource = mc.pointerSource,
+            gestureSource = gesture,
+            activeTracker = { mc.activeTracker() },
+            currentMode = { mc.mode.value },
+        )
         val c = ConductorContainer(
             deps = d,
             scope = service.lifecycleScope,
             // 캘리브레이션이 끝나기 전에는 명령을 받지 않는다(FR-006)
             initialState = ControllerState.CALIBRATING,
         )
-        tracker = t
+        modeController = mc
         deps = d
         container = c
         scope = service.lifecycleScope
         appContext = service.applicationContext
+        lifecycleOwner = service
 
-        // 서비스의 라이프사이클에 바인딩된다 — 앱을 나가도 살아 있다
-        t.start(service)
+        // 부팅 모드 = 마지막으로 선택한 모드(기본 FACE). 트래커를 만들고 카메라를 켠다.
+        val bootMode = CalibrationStore.loadMode(service.applicationContext)
+        mc.activate(bootMode, service)
         d.voice.start()
+        // 제스처 판정 루프. 서비스 스코프에서 돌아 카메라와 함께 죽는다(FACE 모드면 입력이 없어 조용하다).
+        gesture.start(service.lifecycleScope)
 
-        wireOverlay(service, c, d)
+        wireOverlay(service, c, d, mc)
         logBuildStamp(service)
-        Log.i(TAG, "파이프라인 시작 (서비스 수명)")
+        Log.i(TAG, "파이프라인 시작 (서비스 수명, 모드=$bootMode)")
 
         // 저장된 프로파일이 있으면 보정을 건너뛰고 바로 쓸 수 있게 한다.
         // FR-006이 막으려는 건 "보정 안 된 채 ACTIVE 진입"이지 "이미 보정된 사용자에게
         // 매번 다시 시키는 것"이 아니다.
-        val saved = CalibrationStore.load(service.applicationContext)
-        if (saved != null) {
-            Log.i(TAG, "저장된 프로파일 복원 — ${saved.profileId}")
-            t.updateProfile(saved)
-            c.orchestrator.onCalibrationComplete()
-        }
+        restoreProfileOrStayCalibrating(bootMode)
 
         if (calibrationPending) {
             calibrationPending = false
             runCalibration()
         }
+    }
+
+    /** 현재 모드의 저장 프로파일이 있으면 주입 + ACTIVE 진입, 없으면 CALIBRATING 유지. */
+    private fun restoreProfileOrStayCalibrating(mode: InputMode) {
+        val ctx = appContext ?: return
+        val saved = CalibrationStore.load(ctx, mode) ?: return
+        Log.i(TAG, "저장된 프로파일 복원 — ${saved.profileId} ($mode)")
+        modeController?.activeTracker()?.updateProfile(saved)
+        container?.orchestrator?.onCalibrationComplete()
     }
 
     /**
@@ -127,6 +153,7 @@ object ControllerPipeline {
         service: LifecycleService,
         c: ConductorContainer,
         d: RealConductorDependencies,
+        mc: InputModeController,
     ) {
         val orchestrator = c.orchestrator
         val telemetryLogger = Telemetry.logger(service.applicationContext)
@@ -177,8 +204,9 @@ object ControllerPipeline {
         service.lifecycleScope.launch {
             orchestrator.notices.collect { Log.i(TAG, "안내 — $it") }
         }
+        // 스위처블 에러 스트림 — 모드를 바꿔도 현재 활성 트래커의 에러를 계속 받는다.
         service.lifecycleScope.launch {
-            d.tracker.errors.collect { error ->
+            mc.errors.collect { error ->
                 telemetryLogger.logAppError(
                     type = error.type.name,
                     message = "trackerTimestamp=${error.timestamp}",
@@ -188,15 +216,78 @@ object ControllerPipeline {
     }
 
     /**
+     * 런타임 입력 모드 전환(Phase 3). **오케스트레이터·음성은 그대로 살아 있고 트래커만 바뀐다.**
+     *
+     * 안전 처리:
+     * - 전환 중 드래그가 진행 중이면 먼저 취소한다(터치 다운이 매달린 채 트래커가 바뀌면 안 된다).
+     * - 음성 안전 명령("멈춰"/"잠금")은 전환과 무관하게 계속 살아 있다 — 음성 엔진은 재시작하지 않는다.
+     *
+     * 전환 후 그 모드의 저장 프로파일이 있으면 즉시 적용하고, 없으면 캘리브레이션을 돌린다.
+     */
+    fun switchMode(target: InputMode) {
+        val mc = modeController
+        val owner = lifecycleOwner
+        val ctx = appContext
+        if (mc == null || owner == null || ctx == null) {
+            Log.w(TAG, "서비스 미기동 — 모드 전환 무시 (요청=$target)")
+            return
+        }
+        if (target == mc.mode.value) return
+
+        // 진행 중 드래그 안전 취소(음성 경로로 주입 → 게이트가 DRAGGING에서만 처리).
+        if (container?.orchestrator?.state?.value == ControllerState.DRAGGING) {
+            deps?.voice?.inject(CommandId.DRAG_CANCEL)
+        }
+
+        Log.i(TAG, "모드 전환 ${mc.mode.value} → $target")
+        mc.activate(target, owner)              // 이전 트래커 stop + 새 트래커 start
+        CalibrationStore.saveMode(ctx, target)  // 재시작 시 이 모드로 부팅
+
+        // 새 모드의 프로파일 적용 또는 보정. 상태는 이미 ACTIVE라 그대로 두고 매핑만 바꾼다.
+        val saved = CalibrationStore.load(ctx, target)
+        if (saved != null) {
+            Log.i(TAG, "저장된 프로파일 복원 — ${saved.profileId} ($target)")
+            mc.activeTracker()?.updateProfile(saved)
+        } else {
+            Log.i(TAG, "$target 프로파일 없음 — 보정 시작")
+            runCalibration()
+        }
+    }
+
+    /**
      * 저장된 프로파일이 없을 때만 캘리브레이션을 돌린다. 시작 버튼의 경로다.
      *
      * 서비스가 아직 안 떠 있어도 저장소는 읽을 수 있으므로 [start]를 기다리지 않는다.
      */
     fun runCalibrationIfNeeded(context: Context) {
-        if (CalibrationStore.load(context) != null) {
-            Log.i(TAG, "저장된 프로파일이 있어 보정을 생략한다")
+        // 아직 선택된 모드 기준(서비스 미기동이면 저장된 마지막 모드).
+        val mode = modeController?.mode?.value ?: CalibrationStore.loadMode(context)
+        if (CalibrationStore.load(context, mode) != null) {
+            Log.i(TAG, "저장된 프로파일이 있어 보정을 생략한다 ($mode)")
             return
         }
+        runCalibration()
+    }
+
+    /**
+     * Activity 토글 진입점. 기동 중이면 즉시 전환하고, 아직 서비스가 안 떴으면 부팅 모드만 저장한다.
+     * @return 즉시 전환됐으면 true, 다음 시작에 반영되면 false.
+     */
+    fun requestMode(context: Context, target: InputMode): Boolean {
+        return if (isRunning) {
+            switchMode(target)
+            true
+        } else {
+            CalibrationStore.saveMode(context, target)
+            Log.i(TAG, "서비스 미기동 — 부팅 모드로 저장: $target")
+            false
+        }
+    }
+
+    /** 현재 모드의 프로파일을 버리고 처음부터 다시 잡는다(설정의 재보정 버튼 경로). */
+    fun recalibrate(context: Context) {
+        val mode = modeController?.mode?.value ?: CalibrationStore.loadMode(context)
+        CalibrationStore.clear(context, mode)
         runCalibration()
     }
 
@@ -245,23 +336,24 @@ object ControllerPipeline {
         }
     }
 
-    /** 기기 회전은 A가 흡수한다. Activity가 각도만 알려주면 C/D는 신경 쓰지 않는다. */
+    /** 기기 회전은 트래커가 흡수한다. Activity가 각도만 알려주면 C/D는 신경 쓰지 않는다. */
     fun updateRotation(degrees: Int) {
-        tracker?.displayRotationDegrees = degrees
+        modeController?.displayRotationDegrees = degrees
     }
 
     fun stop() {
         calibrationJob?.cancel()
         calibrationJob = null
-        tracker?.stop()
+        modeController?.stop()
         deps?.voice?.stop()
         container?.orchestrator?.stop()
         OverlayBus.onManualUnlock = null
-        tracker = null
+        modeController = null
         deps = null
         container = null
         scope = null
         appContext = null
+        lifecycleOwner = null
         _calibrating.value = false
         Log.i(TAG, "파이프라인 정지")
     }

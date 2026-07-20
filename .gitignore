@@ -27,7 +27,7 @@ local.properties
 keystore.properties
 
 # ── 큰 바이너리 ────────────────────────────────────────────
-# MediaPipe 모델(face_landmarker.task, 3.7MB)은 저장소에 포함한다.
+# MediaPipe 모델(face_landmarker.task 3.7MB, hand_landmarker.task 7.5MB)은 저장소에 포함한다.
 # 제외했더니 클론한 팀원이 MODEL_LOAD_FAILED만 보고 원인을 몰랐다.
 # 3.7MB는 git이 감당할 크기이고, 없으면 앱이 아예 안 돌아가는 필수 파일이다.
 
