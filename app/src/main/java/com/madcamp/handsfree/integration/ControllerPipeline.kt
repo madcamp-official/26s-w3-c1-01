@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Date
 
 /**
  * A/B/C/D 파이프라인의 소유자. **포그라운드 서비스가 켜고 끈다.**
@@ -84,6 +85,7 @@ object ControllerPipeline {
         d.voice.start()
 
         wireOverlay(service, c, d)
+        logBuildStamp(service)
         Log.i(TAG, "파이프라인 시작 (서비스 수명)")
 
         // 저장된 프로파일이 있으면 보정을 건너뛰고 바로 쓸 수 있게 한다.
@@ -100,6 +102,21 @@ object ControllerPipeline {
             calibrationPending = false
             runCalibration()
         }
+    }
+
+    /**
+     * 지금 돌고 있는 APK가 언제 설치된 것인지 남긴다.
+     *
+     * **"코드를 고쳤는데 동작이 그대로"일 때 재빌드 여부를 먼저 확인해야 한다.**
+     * 실제로 이걸 몰라서 멀쩡한 코드를 의심하며 한 사이클을 날렸다. 설치 시각이
+     * 방금이 아니면 폰에 있는 건 옛날 APK다.
+     */
+    private fun logBuildStamp(context: Context) {
+        val installedAt = runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
+        }.getOrNull() ?: return
+        val elapsed = (System.currentTimeMillis() - installedAt) / 1000
+        Log.i(TAG, "APK 설치 시각: ${Date(installedAt)} (${elapsed}초 전)")
     }
 
     private fun wireOverlay(

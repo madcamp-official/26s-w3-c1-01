@@ -28,17 +28,21 @@ class VoiceRecognitionEngine(
     private val mainHandler = Handler(Looper.getMainLooper())
 
     /**
-     * 온디바이스 인식 사용 여부.
+     * 온디바이스 인식 사용 여부. **기본을 온라인으로 되돌렸다.**
      *
-     * 기본은 오프라인이다. NFR이 "온디바이스·오프라인"을 요구하고(음성 원본을 서버로
-     * 보내지 않는다), 네트워크 왕복이 사라지면 반응도 빨라진다.
+     * NFR은 "온디바이스·오프라인"(음성 원본을 서버로 보내지 않는다)을 요구하고
+     * 오프라인이면 네트워크 왕복이 사라져 반응도 빨라진다. 그래서 기본으로 켜 봤는데,
+     * **검증 기기(갤럭시 S7)에서 음성 인식이 통째로 죽었다.** 한국어 오프라인 모델이
+     * 없으면 SpeechRecognizer가 에러조차 주지 않고 침묵한다.
      *
-     * **다만 기기에 한국어 오프라인 모델이 없으면 인식이 통째로 실패한다.**
-     * 모든 사용자 기기에 모델이 있다고 가정할 수 없어서 실패가 반복되면 온라인으로
-     * 되돌린다. 되돌아간 뒤에는 그 세션 동안 유지한다 — 매번 오프라인을 재시도하면
-     * 실패-폴백을 반복하며 지연만 늘어난다.
+     * 동작하지 않는 NFR 준수보다 동작하는 앱이 먼저라 온라인으로 되돌린다.
+     * **이건 NFR 미충족 상태이며 팀이 알고 결정해야 하는 항목이다** —
+     * docs/INTEGRATION.md에 미해결로 기록해 뒀다.
+     *
+     * 기기에 오프라인 모델이 있는 게 확인되면 [PREFER_OFFLINE_BY_DEFAULT]를 켜면 된다.
+     * 아래 폴백/감시자 경로는 그대로 살아 있다.
      */
-    private var useOffline = true
+    private var useOffline = PREFER_OFFLINE_BY_DEFAULT
 
     /** 오프라인 상태에서 연속으로 난 하드 에러 수. 인식 성공 시 0으로 돌아간다. */
     private var consecutiveHardErrors = 0
@@ -59,9 +63,10 @@ class VoiceRecognitionEngine(
         }
 
         isListening = true
-        useOffline = true
+        // 이전 세션에서 폴백으로 꺼졌을 수 있으니 기본값으로 되돌린다
+        useOffline = PREFER_OFFLINE_BY_DEFAULT
         consecutiveHardErrors = 0
-        Log.i(TAG, "인식 시작 — 오프라인 우선")
+        Log.i(TAG, "인식 시작 — ${if (useOffline) "오프라인 우선" else "온라인"}")
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
             setRecognitionListener(recognitionListener)
         }
@@ -208,6 +213,14 @@ class VoiceRecognitionEngine(
         // 대괄호를 쓰면 안 된다 — Logcat 필터에서 정규식 메타문자로 해석돼
         // tag:VoiceEngine[PartB]로 걸면 아무것도 안 잡힌다
         private const val TAG = "VoiceEngine"
+
+        /**
+         * 오프라인(온디바이스) 인식을 기본으로 쓸지.
+         *
+         * 검증 기기에 한국어 오프라인 모델이 없어 꺼 뒀다. NFR 미충족 상태이며
+         * 팀 결정이 필요한 항목이다(docs/INTEGRATION.md).
+         */
+        private const val PREFER_OFFLINE_BY_DEFAULT = false
 
         /** 이만큼 연속 실패하면 온라인으로 되돌린다 */
         private const val OFFLINE_FALLBACK_THRESHOLD = 3
