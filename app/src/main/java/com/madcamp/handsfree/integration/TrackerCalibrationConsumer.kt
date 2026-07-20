@@ -34,6 +34,6 @@ class TrackerCalibrationConsumer(
     }
 
     private companion object {
-        const val TAG = "CalibrationProfile"
+        const val TAG = "HF-Calib"
     }
 }

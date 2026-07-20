@@ -258,5 +258,5 @@ object ControllerPipeline {
         Log.i(TAG, "파이프라인 정지")
     }
 
-    private const val TAG = "ControllerPipeline"
+    private const val TAG = "HF-Pipeline"
 }

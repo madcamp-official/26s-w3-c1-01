@@ -212,7 +212,7 @@ class VoiceRecognitionEngine(
         private const val RESTART_DELAY_MS = 300L
         // 대괄호를 쓰면 안 된다 — Logcat 필터에서 정규식 메타문자로 해석돼
         // tag:VoiceEngine[PartB]로 걸면 아무것도 안 잡힌다
-        private const val TAG = "VoiceEngine"
+        private const val TAG = "HF-Voice"
 
         /**
          * 오프라인(온디바이스) 인식을 기본으로 쓸지.

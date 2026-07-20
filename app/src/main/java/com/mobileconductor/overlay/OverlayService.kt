@@ -181,7 +181,7 @@ class OverlayService : LifecycleService() {
     }
 
     companion object {
-        private const val TAG = "OverlayService"
+        private const val TAG = "HF-Overlay"
         private const val NOTIFICATION_ID = 1001
         private const val ACTION_STOP = "com.madcamp.handsfree.STOP_CONTROLLER"
 

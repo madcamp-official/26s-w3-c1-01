@@ -250,7 +250,7 @@ class FaceTracker(
         }
 
     private companion object {
-        const val TAG = "FaceTracker"
+        const val TAG = "HF-Tracker"
         const val MODEL_ASSET = "face_landmarker.task"
         const val LOW_LIGHT_CHECK_INTERVAL = 10
     }

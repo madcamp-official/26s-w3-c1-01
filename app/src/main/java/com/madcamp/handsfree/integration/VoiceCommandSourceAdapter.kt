@@ -102,7 +102,7 @@ class VoiceCommandSourceAdapter(
     }
 
     private companion object {
-        const val TAG = "VoiceAdapter"
+        const val TAG = "HF-VoiceCmd"
         const val VOICE_SUMMARY_INTERVAL_MS = 60_000L
     }
 }

@@ -45,7 +45,7 @@ object CalibrationStore {
     private const val KEY_CREATED = "createdAt"
     private const val KEY_UPDATED = "updatedAt"
 
-    private const val TAG = "CalibrationStore"
+    private const val TAG = "HF-CalibStore"
 
     fun save(context: Context, profile: CalibrationProfile) {
         prefs(context).edit()
