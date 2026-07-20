@@ -14,10 +14,10 @@ object CommandDictionary {
         CommandDefinition("TOUCH", listOf("터치", "클릭")),
         CommandDefinition("BACK", listOf("취소")),
         CommandDefinition("DRAG_START", listOf("잡아", "드래그 시작")),
-        CommandDefinition("DRAG_END", listOf("놓아")),
+        CommandDefinition("DRAG_END", listOf("놓아", "놔")),
         CommandDefinition("DRAG_CANCEL", listOf("드래그 취소")),
-        CommandDefinition("SCROLL_DOWN", listOf("아래로")),
-        CommandDefinition("SCROLL_UP", listOf("위로")),
+        CommandDefinition("SCROLL_DOWN", listOf("아래로", "내려")),
+        CommandDefinition("SCROLL_UP", listOf("위로", "올려")),
         CommandDefinition("SCROLL_DOWN_SMALL", listOf("조금 아래로")),
         CommandDefinition("SCROLL_UP_SMALL", listOf("조금 위로")),
         CommandDefinition("SCROLL_DOWN_LARGE", listOf("크게 아래로")),
@@ -26,8 +26,8 @@ object CommandDictionary {
         CommandDefinition("RESUME", listOf("다시 시작")),
         CommandDefinition("LOCK", listOf("잠금")),
         CommandDefinition("UNLOCK", listOf("해제")),
-        CommandDefinition("NEXT", listOf("다음")),
-        CommandDefinition("PREV", listOf("이전")),
+        CommandDefinition("NEXT", listOf("다음", "오른쪽")),
+        CommandDefinition("PREV", listOf("이전", "왼쪽")),
     )
 
     private val phraseToCommandId: Map<String, String> =

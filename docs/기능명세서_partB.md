@@ -32,10 +32,10 @@
 | TOUCH | 터치, 클릭 |  |
 | BACK | 취소 | 뒤로가기 |
 | DRAG_START | 잡아, 드래그 시작 |  |
-| DRAG_END | 놓아 |  |
+| DRAG_END | 놓아, 놔 |  |
 | DRAG_CANCEL | 드래그 취소 |  |
-| SCROLL_DOWN | 아래로 |  |
-| SCROLL_UP | 위로 |  |
+| SCROLL_DOWN | 아래로, 내려 |  |
+| SCROLL_UP | 위로, 올려 |  |
 | SCROLL_DOWN_SMALL | 조금 아래로 |  |
 | SCROLL_UP_SMALL | 조금 위로 |  |
 | SCROLL_DOWN_LARGE | 크게 아래로 |  |
@@ -44,8 +44,8 @@
 | RESUME | 다시 시작 |  |
 | LOCK | 잠금 |  |
 | UNLOCK | 해제 |  |
-| NEXT | 다음 | 발표 시나리오용 |
-| PREV | 이전 | 발표 시나리오용 |
+| NEXT | 다음, 오른쪽 | 발표 시나리오용 |
+| PREV | 이전, 왼쪽 | 발표 시나리오용 |
 
 > 이 표가 시스템 전체의 "단일 진실 공급원(SSOT)"이다. C, D는 이 `commandId` 값만 참조하고, 실제 한국어 문자열은 전혀 참조하지 않는다. 명령어를 추가/변경할 때는 이 표만 수정하면 된다(Phase 2에서 사용자 커스텀 명령어 등록 시에도 이 사전 구조를 확장).
 >
