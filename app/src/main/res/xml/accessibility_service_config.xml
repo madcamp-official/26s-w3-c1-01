@@ -8,10 +8,14 @@
   우리 프로세스로 받고 있었던 것이다. canRetrieveWindowContent가 없어 실제 유출은
   아니었지만, 안 쓰는 데이터는 애초에 안 받는 게 맞고 스토어 접근성 심사에서도 걸린다.
 
-  typeNone으로 내려도 제스처 주입 기능은 그대로다 — 둘은 별개 권한이다.
+  **accessibilityEventTypes를 일부러 뺐다. 지우지 말고 비워 둘 것.**
+  이 속성은 flags라서 "없음"을 뜻하는 값이 없다 — typeNone이라고 쓰면
+  'typeNone' is incompatible with attribute accessibilityEventTypes로 빌드가 깨진다.
+  속성을 생략하면 기본값이 0(아무 이벤트도 받지 않음)이라 그게 우리가 원하는 상태다.
+
+  제스처 주입 기능은 그대로다 — 이벤트 구독과 canPerformGestures는 별개다.
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeNone"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:canPerformGestures="true"
     android:description="@string/accessibility_service_description"

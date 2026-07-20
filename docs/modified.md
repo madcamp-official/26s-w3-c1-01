@@ -114,8 +114,13 @@ match /{document=**} { allow read, write: if false; }
 
 ## 📋 C파트 담당자에게 — 접근성 서비스 설정
 
-`accessibility_service_config.xml`의 `accessibilityEventTypes`를
-**`typeAllMask` → `typeNone`**으로 내렸다.
+`accessibility_service_config.xml`에서 **`accessibilityEventTypes="typeAllMask"`를
+아예 제거했다.**
+
+> **속성을 비워 둔 것이 의도다. `typeNone`으로 채우지 말 것** — 이 속성은 flags라
+> "없음"을 뜻하는 값이 없고, 쓰면 `'typeNone' is incompatible with attribute
+> accessibilityEventTypes`로 **빌드가 깨진다.** (실제로 한 번 겪었다.)
+> 생략하면 기본값이 0 = 아무 이벤트도 받지 않음이고, 그게 원하는 상태다.
 
 `GestureAccessibilityService.onAccessibilityEvent`가 **비어 있는데**, 다른 앱의
 `TYPE_VIEW_TEXT_CHANGED`(= 사용자가 타이핑하는 내용)까지 우리 프로세스로 받고 있었다.

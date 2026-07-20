@@ -219,8 +219,13 @@ NFR("음성 원본은 저장하지 않는다")과 앱이 화면에서 하는 고
 `accessibilityEventTypes="typeAllMask"`인데 `onAccessibilityEvent`는 비어 있었다.
 `canRetrieveWindowContent`가 없어 실제 유출은 아니지만, 다른 앱의
 `TYPE_VIEW_TEXT_CHANGED`(사용자가 타이핑하는 내용)까지 프로세스로 받고 있었다.
-**`typeNone`으로 내렸다** — 제스처 주입과 이벤트 구독은 별개라 기능은 그대로다.
+**속성을 통째로 제거했다** — 제스처 주입과 이벤트 구독은 별개라 기능은 그대로다.
 스토어 접근성 심사에서도 반드시 걸리는 항목이다.
+
+처음에 `typeNone`으로 바꿨다가 **빌드가 깨졌다.** 이 속성은 flags라서 "없음"을 뜻하는
+값이 아예 없다(`'typeNone' is incompatible with attribute accessibilityEventTypes`).
+**속성을 생략하는 것이 유일한 방법이고 기본값이 0이다.** 비어 있는 게 실수로 보여서
+누가 다시 채우기 쉬운 자리라 xml에 주석을 달아 뒀다.
 
 ### 7.4 `sessionId`가 세션이 아니라 영구 설치 식별자였다
 
