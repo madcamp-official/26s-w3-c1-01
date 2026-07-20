@@ -9,7 +9,8 @@
     <string name="setup_guide">순서대로 눌러 주세요. 접근성 서비스와 오버레이 권한이 없으면 명령이 실행되지 않습니다.</string>
     <string name="btn_accessibility">1. 접근성 서비스 켜기</string>
     <string name="btn_overlay">2. 오버레이 권한 / 시작</string>
-    <string name="btn_start">3. 캘리브레이션 시작 / 다시 하기</string>
+    <string name="btn_start">3. 시작</string>
+    <string name="btn_recalibrate">캘리브레이션 다시 하기</string>
 
     <string name="btn_stop">정지 (카메라·마이크 끄기)</string>
 

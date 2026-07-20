@@ -50,6 +50,12 @@ class ControllerActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btn_start).setOnClickListener {
             permissions.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
         }
+        // 저장된 프로파일을 버리고 처음부터 다시 잡는다.
+        // 자세나 거치 위치가 바뀌면 기존 범위가 안 맞는다.
+        findViewById<Button>(R.id.btn_recalibrate).setOnClickListener {
+            CalibrationStore.clear(this)
+            ControllerPipeline.runCalibration()
+        }
         // 알림의 정지 버튼과 같은 동작. 서비스가 죽으면 파이프라인도 같이 정리된다.
         findViewById<Button>(R.id.btn_stop).setOnClickListener {
             OverlayService.stop(this)
@@ -97,7 +103,8 @@ class ControllerActivity : AppCompatActivity() {
         }
         startOverlayService()
         ControllerPipeline.updateRotation(currentRotationDegrees())
-        ControllerPipeline.runCalibration()
+        // 저장된 프로파일이 있으면 22초짜리 보정을 다시 시키지 않는다
+        ControllerPipeline.runCalibrationIfNeeded(this)
     }
 
     private fun startOverlayService() {

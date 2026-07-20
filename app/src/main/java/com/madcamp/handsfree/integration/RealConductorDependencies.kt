@@ -30,7 +30,7 @@ class RealConductorDependencies(
     override val pointerSource: PointerSource = FacePointerSource(tracker)
     override val voiceCommandSource: VoiceCommandSource = voice
     override val executionSink: ExecutionSink = sink
-    override val calibrationConsumer: CalibrationConsumer = TrackerCalibrationConsumer(tracker)
+    override val calibrationConsumer: CalibrationConsumer = TrackerCalibrationConsumer(context, tracker)
 
     init {
         // A의 좌표는 두 곳으로 간다: D(오버레이 렌더/게이트)와 C(터치를 찍을 위치).

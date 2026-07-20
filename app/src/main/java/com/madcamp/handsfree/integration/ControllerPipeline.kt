@@ -1,5 +1,6 @@
 package com.madcamp.handsfree.integration
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
@@ -85,6 +86,16 @@ object ControllerPipeline {
         wireOverlay(service, c, d)
         Log.i(TAG, "파이프라인 시작 (서비스 수명)")
 
+        // 저장된 프로파일이 있으면 보정을 건너뛰고 바로 쓸 수 있게 한다.
+        // FR-006이 막으려는 건 "보정 안 된 채 ACTIVE 진입"이지 "이미 보정된 사용자에게
+        // 매번 다시 시키는 것"이 아니다.
+        val saved = CalibrationStore.load(service.applicationContext)
+        if (saved != null) {
+            Log.i(TAG, "저장된 프로파일 복원 — ${saved.profileId}")
+            t.updateProfile(saved)
+            c.orchestrator.onCalibrationComplete()
+        }
+
         if (calibrationPending) {
             calibrationPending = false
             runCalibration()
@@ -136,6 +147,19 @@ object ControllerPipeline {
         service.lifecycleScope.launch {
             orchestrator.notices.collect { Log.i(TAG, "안내 — $it") }
         }
+    }
+
+    /**
+     * 저장된 프로파일이 없을 때만 캘리브레이션을 돌린다. 시작 버튼의 경로다.
+     *
+     * 서비스가 아직 안 떠 있어도 저장소는 읽을 수 있으므로 [start]를 기다리지 않는다.
+     */
+    fun runCalibrationIfNeeded(context: Context) {
+        if (CalibrationStore.load(context) != null) {
+            Log.i(TAG, "저장된 프로파일이 있어 보정을 생략한다")
+            return
+        }
+        runCalibration()
     }
 
     /**
