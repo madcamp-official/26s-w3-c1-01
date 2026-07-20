@@ -41,6 +41,9 @@ android {
 
     buildFeatures {
         viewBinding = true
+        // AGP 9는 buildConfig를 기본으로 만들지 않는다. 배포본에서 개발용 UI를
+        // 숨기려면 BuildConfig.DEBUG가 필요해서 켠다
+        buildConfig = true
     }
 
     androidResources {

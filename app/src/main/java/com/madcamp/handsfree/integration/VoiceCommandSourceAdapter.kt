@@ -74,7 +74,12 @@ class VoiceCommandSourceAdapter(
     }
 
     override fun onUnrecognizedSpeech(rawText: String) {
-        Log.i(TAG, "발화는 들렸으나 사전에 없음 - \"$rawText\"")
+        // **인식된 문장을 그대로 찍지 않는다.** 마이크가 상시 켜져 있는 앱이라
+        // 여기 들어오는 건 명령어가 아닌 모든 소리다 — 사용자의 혼잣말, 옆 사람 대화,
+        // TV 소리까지 전부. 그걸 로그에 남기면 "음성 원본은 저장하지 않는다"는 NFR과
+        // 앱이 사용자에게 보여주는 고지("수집하지 않음: 음성 녹음")를 동시에 깬다.
+        // 길이만으로도 "짧게 끊겼는지 / 길게 말했는데 못 알아들었는지"는 구분된다.
+        Log.i(TAG, "발화는 들렸으나 사전에 없음 (${rawText.length}자)")
         recordVoiceFailure("UNRECOGNIZED_SPEECH")
     }
 

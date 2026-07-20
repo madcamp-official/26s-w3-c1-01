@@ -1,0 +1,54 @@
+// Firestore 보안 규칙. **이 파일은 기록용이고, 실제 적용은 Firebase 콘솔에서 한다.**
+// (콘솔 → Firestore Database → 규칙 → 붙여넣기 → 게시)
+//
+// 처음에는 콘솔이 만들어준 테스트 모드 규칙이 그대로 있었다:
+//   match /{document=**} { allow read, write: if request.time < timestamp.date(2026, 8, 19); }
+// 이건 만료 전까지 **누구에게나 전체 읽기/쓰기를 허용한다.** app/google-services.json이
+// 공개 저장소에 있어 프로젝트 ID가 비밀이 아니므로, 앱을 설치하지 않은 사람도
+// telemetry_feedback(사용자가 직접 쓴 자유 텍스트)까지 전부 긁어갈 수 있었다.
+//
+// 이 앱에는 로그인이 없다. 그래서 "쓰기만 허용, 읽기 전면 차단"이 유일하게
+// 성립하는 모델이다. 데이터 확인은 관리자(콘솔/Admin SDK)로만 한다 —
+// 관리자는 규칙을 우회하므로 팀이 통계를 보는 데는 지장이 없다.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 원본 이벤트와 사용자 피드백: 생성만 허용.
+    // update/delete를 막는 이유는 남이 남의 제보를 고치거나 지우지 못하게 하기 위해서다.
+    match /telemetry_events/{eventId} {
+      allow create: if isValidEvent();
+      allow read, update, delete: if false;
+    }
+    match /telemetry_feedback/{eventId} {
+      allow create: if isValidEvent();
+      allow read, update, delete: if false;
+    }
+
+    // 집계 문서는 FieldValue.increment로 같은 문서를 계속 병합해서 update가 필수다.
+    // 삭제만 막는다 — 통계를 통째로 날리는 것 방지.
+    match /telemetry_command_stats/{docId} {
+      allow create, update: if true;
+      allow read, delete: if false;
+    }
+    match /telemetry_daily_stats/{docId} {
+      allow create, update: if true;
+      allow read, delete: if false;
+    }
+
+    // 위에 없는 경로는 전부 차단. 새 컬렉션을 추가하면 여기 규칙도 같이 추가해야 한다
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 익명 클라이언트가 쓰는 구조라 완전한 방어는 불가능하다.
+    // 실수나 장난으로 거대한 문서가 들어오는 것만 막는 수준의 형태 검증이다.
+    function isValidEvent() {
+      return request.resource.data.keys().hasAll(['eventId', 'eventName', 'timestamp'])
+          && request.resource.data.eventName is string
+          && request.resource.data.eventName.size() < 64;
+    }
+  }
+}

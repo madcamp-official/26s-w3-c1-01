@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Surface
+import android.view.View
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -14,6 +15,7 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.madcamp.handsfree.BuildConfig
 import com.madcamp.handsfree.R
 import com.madcamp.handsfree.telemetry.LocalTelemetryQueue
 import com.madcamp.handsfree.telemetry.Telemetry
@@ -118,19 +120,29 @@ class ControllerActivity : AppCompatActivity() {
                 telemetryQueue.count(),
             )
         }
-        findViewById<Button>(R.id.btn_upload_test).setOnClickListener {
-            TelemetryUploadWorker.enqueueManualTestUpload(
-                context = applicationContext,
-                useLogcatUploader = true,
-            )
-            telemetryStatusText.setText(R.string.telemetry_upload_test_started)
-        }
-        findViewById<Button>(R.id.btn_upload_firebase_test).setOnClickListener {
-            TelemetryUploadWorker.enqueueManualTestUpload(
-                context = applicationContext,
-                useLogcatUploader = false,
-            )
-            telemetryStatusText.setText(R.string.telemetry_firebase_upload_test_started)
+        // 업로드 테스트 버튼은 개발용이다. 낯선 사용자에게 배포하는 화면에
+        // "Logcat", "Firebase" 같은 말이 보이면 앱이 미완성으로 읽힌다.
+        // 기능을 지우지 않고 숨기기만 하는 이유는 디버그 빌드에서 계속 쓰기 때문이다.
+        val uploadTestButton = findViewById<Button>(R.id.btn_upload_test)
+        val firebaseTestButton = findViewById<Button>(R.id.btn_upload_firebase_test)
+        if (BuildConfig.DEBUG) {
+            uploadTestButton.setOnClickListener {
+                TelemetryUploadWorker.enqueueManualTestUpload(
+                    context = applicationContext,
+                    useLogcatUploader = true,
+                )
+                telemetryStatusText.setText(R.string.telemetry_upload_test_started)
+            }
+            firebaseTestButton.setOnClickListener {
+                TelemetryUploadWorker.enqueueManualTestUpload(
+                    context = applicationContext,
+                    useLogcatUploader = false,
+                )
+                telemetryStatusText.setText(R.string.telemetry_firebase_upload_test_started)
+            }
+        } else {
+            uploadTestButton.visibility = View.GONE
+            firebaseTestButton.visibility = View.GONE
         }
         updateTelemetryStatus()
 
