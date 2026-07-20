@@ -30,5 +30,8 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "HandsFreeController"
+// 표기를 바꾸지 말 것. IDE가 .idea/ 아래에 이 이름으로 모듈을 캐시해 두는데,
+// 대소문자만 달라져도 "Can't find module entity for ...app"으로 Sync가 죽는다.
+// (통합 때 B의 "HandsFreeController" 표기를 가져왔다가 실제로 이걸로 막혔다)
+rootProject.name = "HandsfreeController"
 include(":app")
