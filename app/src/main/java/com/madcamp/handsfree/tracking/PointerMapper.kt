@@ -51,15 +51,6 @@ class PointerMapper {
     private var couplingYawMin = 0f
     private var couplingYawMax = 0f
 
-    /**
-     * 직전 프레임의 보정 후 pitch. 트레이스 로그 전용이다.
-     *
-     * 보정이 과했는지 모자랐는지는 원본 pitch만 봐서는 알 수 없어서,
-     * 계측 때 두 값을 나란히 볼 수 있게 열어뒀다. 호 문제가 끝나면 지운다.
-     */
-    @Volatile
-    var lastCorrectedPitch: Float = 0f
-        private set
 
     /** D가 프로파일을 갱신하면(재보정 포함) 즉시 반영한다 */
     fun updateProfile(newProfile: CalibrationProfile) {
@@ -136,7 +127,6 @@ class PointerMapper {
         //    자라서 과보정되고, 호가 반대 방향으로 뒤집힌다.
         val dYaw = (raw.yaw - yawCenter).coerceIn(couplingYawMin, couplingYawMax)
         val correctedPitch = raw.pitch - pitchCouplingK * dYaw * dYaw
-        lastCorrectedPitch = correctedPitch
 
         // 2) 캘리브레이션 범위 기준 선형 정규화 (9점 보간은 하지 않는다 — OPEN_ISSUES #6)
         var nx = normalize(raw.yaw, p.faceRangeYawMin, p.faceRangeYawMax)

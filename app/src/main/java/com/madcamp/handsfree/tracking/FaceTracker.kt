@@ -160,7 +160,6 @@ class FaceTracker(
     }
 
     private var frameIndex = 0
-    private var traceIndex = 0
 
     private fun analyze(image: ImageProxy) {
         try {
@@ -231,32 +230,7 @@ class FaceTracker(
 
     private fun emit(raw: RawFaceOrientation) {
         _rawOrientations.tryEmit(raw)
-        val frame = mapper.map(raw, lastLowLight)
-        _pointerFrames.tryEmit(frame)
-        traceIfNeeded(raw, frame)
-    }
-
-    /**
-     * 각도·시선·최종좌표를 한 줄로 남긴다. **호를 그리는 원인을 좁히기 위한 계측이다.**
-     *
-     * 고개를 좌우로만 돌리면서 이 로그를 보면 어디서 세로 성분이 붙는지 알 수 있다:
-     * - pitch가 yaw를 따라 변하면 → 머리 각도 추출이 여전히 섞여 있다
-     * - pitch는 일정한데 eyeY가 흔들리면 → 시선 보조가 원인이다
-     * - 둘 다 일정한데 y가 변하면 → 매핑 단계 문제다
-     *
-     * 매 프레임 찍으면 Logcat이 넘쳐서 읽을 수가 없어 간격을 둔다.
-     * 원인이 확정되면 이 함수는 지운다.
-     */
-    private fun traceIfNeeded(raw: RawFaceOrientation, frame: PointerFrame) {
-        if (!raw.faceDetected) return
-        if (traceIndex++ % TRACE_INTERVAL != 0) return
-        Log.d(
-            TRACE_TAG,
-            "yaw=%.1f pitch=%.1f(보정후 %.1f) eyeX=%.3f eyeY=%.3f -> x=%.3f y=%.3f".format(
-                raw.yaw, raw.pitch, mapper.lastCorrectedPitch,
-                raw.eyeOffsetX, raw.eyeOffsetY, frame.x, frame.y,
-            ),
-        )
+        _pointerFrames.tryEmit(mapper.map(raw, lastLowLight))
     }
 
     private fun emitError(type: TrackerError.Type) {
@@ -279,10 +253,6 @@ class FaceTracker(
         const val TAG = "FaceTracker"
         const val MODEL_ASSET = "face_landmarker.task"
         const val LOW_LIGHT_CHECK_INTERVAL = 10
-
-        /** 호 문제 계측용. 원인이 확정되면 트레이스와 함께 지운다 */
-        const val TRACE_TAG = "PointerTrace"
-        const val TRACE_INTERVAL = 5
     }
 }
 
