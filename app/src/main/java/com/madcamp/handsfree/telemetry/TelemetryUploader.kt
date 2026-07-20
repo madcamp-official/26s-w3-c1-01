@@ -37,6 +37,7 @@ class FirebaseTelemetryUploader(
             val feedback = firestore.collection("telemetry_feedback")
             val commandStats = firestore.collection("telemetry_command_stats")
             val dailyStats = firestore.collection("telemetry_daily_stats")
+            upsertUsersAndOverview(firestore, events)
 
             events.forEach { event ->
                 batch.set(
@@ -81,6 +82,80 @@ class FirebaseTelemetryUploader(
                     errorMessage = error.message ?: error::class.java.simpleName,
                 )
             },
+        )
+    }
+
+    private suspend fun upsertUsersAndOverview(
+        firestore: FirebaseFirestore,
+        events: List<TelemetryEvent>,
+    ) {
+        val users = firestore.collection("telemetry_users")
+        val overview = firestore.collection("telemetry_overview").document("global")
+        val groupedByUser = events.groupBy { it.sessionId }
+
+        firestore.runTransaction { transaction ->
+            groupedByUser.forEach { (userId, userEvents) ->
+                val userRef = users.document(userId)
+                val snapshot = transaction.get(userRef)
+                val firstEvent = userEvents.minBy { it.timestamp }
+                val lastEvent = userEvents.maxBy { it.timestamp }
+
+                if (!snapshot.exists()) {
+                    transaction.set(
+                        userRef,
+                        firstEvent.toNewUserMap(lastEvent),
+                        SetOptions.merge(),
+                    )
+                    transaction.set(
+                        overview,
+                        mapOf(
+                            "totalUserCount" to FieldValue.increment(1),
+                            "lastUpdatedAt" to System.currentTimeMillis(),
+                        ),
+                        SetOptions.merge(),
+                    )
+                } else {
+                    transaction.set(
+                        userRef,
+                        lastEvent.toExistingUserUpdate(),
+                        SetOptions.merge(),
+                    )
+                }
+            }
+            transaction.set(
+                overview,
+                mapOf(
+                    "totalUploadedEventCount" to FieldValue.increment(events.size.toLong()),
+                    "lastUpdatedAt" to System.currentTimeMillis(),
+                ),
+                SetOptions.merge(),
+            )
+            null
+        }.await()
+    }
+
+    private fun TelemetryEvent.toNewUserMap(lastEvent: TelemetryEvent): Map<String, Any> {
+        return mapOf(
+            "userId" to sessionId,
+            "firstSeenAt" to timestamp,
+            "firstSeenDate" to localDate(),
+            "lastSeenAt" to lastEvent.timestamp,
+            "lastSeenDate" to lastEvent.localDate(),
+            "deviceModel" to deviceModel,
+            "androidVersion" to androidVersion,
+            "appVersion" to appVersion,
+            "source" to "android",
+        )
+    }
+
+    private fun TelemetryEvent.toExistingUserUpdate(): Map<String, Any> {
+        return mapOf(
+            "lastSeenAt" to timestamp,
+            "lastSeenDate" to localDate(),
+            "deviceModel" to deviceModel,
+            "androidVersion" to androidVersion,
+            "appVersion" to appVersion,
+            "source" to "android",
         )
     }
 
