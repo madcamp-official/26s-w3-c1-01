@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  이 서비스는 화면을 "읽지" 않는다. dispatchGesture로 터치를 주입하고
+  performGlobalAction으로 뒤로가기를 누르는 것뿐이라 접근성 이벤트가 아예 필요 없다.
+
+  원래 typeAllMask였는데 GestureAccessibilityService.onAccessibilityEvent는 비어 있었다.
+  쓰지도 않으면서 다른 앱의 TYPE_VIEW_TEXT_CHANGED(= 사용자가 타이핑하는 내용)까지
+  우리 프로세스로 받고 있었던 것이다. canRetrieveWindowContent가 없어 실제 유출은
+  아니었지만, 안 쓰는 데이터는 애초에 안 받는 게 맞고 스토어 접근성 심사에서도 걸린다.
+
+  **accessibilityEventTypes를 일부러 뺐다. 지우지 말고 비워 둘 것.**
+  이 속성은 flags라서 "없음"을 뜻하는 값이 없다 — typeNone이라고 쓰면
+  'typeNone' is incompatible with attribute accessibilityEventTypes로 빌드가 깨진다.
+  속성을 생략하면 기본값이 0(아무 이벤트도 받지 않음)이라 그게 우리가 원하는 상태다.
+
+  제스처 주입 기능은 그대로다 — 이벤트 구독과 canPerformGestures는 별개다.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:canPerformGestures="true"
+    android:description="@string/accessibility_service_description"
+    android:notificationTimeout="100" />

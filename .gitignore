@@ -1,0 +1,55 @@
+# ── 빌드 산출물 ────────────────────────────────────────────
+# 앞의 /를 붙여 최상위와 모듈 것만 지정한다. 그냥 build/로 두면 경로 어디에 있든
+# build라는 이름의 폴더가 전부 걸린다 — 실제로 offline-repo 안의
+# com/android/tools/build/ 가 여기 걸려서 저장소가 반쯤만 무시되는 일이 있었다.
+/build/
+/app/build/
+.gradle/
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+*.iml
+*.apk
+*.aab
+*.ap_
+*.dex
+*.hprof
+
+# ── 개인 환경 (사람마다 다르고 공유하면 안 됨) ──────────────
+# SDK 경로가 각자 다르다. 올리면 다른 사람 빌드가 깨진다
+local.properties
+.idea/
+
+# ── 서명 키 (유출되면 앱을 사칭할 수 있다) ──────────────────
+*.jks
+*.keystore
+keystore.properties
+
+# ── 큰 바이너리 ────────────────────────────────────────────
+# MediaPipe 모델(face_landmarker.task, 3.7MB)은 저장소에 포함한다.
+# 제외했더니 클론한 팀원이 MODEL_LOAD_FAILED만 보고 원인을 몰랐다.
+# 3.7MB는 git이 감당할 크기이고, 없으면 앱이 아예 안 돌아가는 필수 파일이다.
+
+# 작업 회선이 10MB 넘는 다운로드를 끊어서 큰 아티팩트만 미리 받아둔 로컬 저장소(44MB).
+# 이 컴퓨터 사정이지 프로젝트 구성이 아니다. 정상 회선에서는 없어도 빌드가 된다
+# (settings.gradle.kts에서 이 저장소를 지워도 깨지지 않음).
+offline-repo/
+
+# ── 기타 ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log
+
+# 개인 학습 방식 (로컬 전용)
+/docs/LEARNING_PREFERENCES.md
+
+# env files
+# 채워야 할 항목이 뭔지는 공유해야 한다. 값이 아니라 목록이라 안전하다.
+.env*
+!.env.example
+
+# 서명된 릴리스 산출물. Android Studio의 Generate Signed APK가 여기에 만든다.
+# APK 자체는 위의 *.apk가 잡지만 baselineProfiles/*.dm과 output-metadata.json은
+# 안 잡혀서 실제로 한 번 커밋됐다. 빌드하면 다시 생기는 파일이라 저장소에 둘 이유가 없다.
+/app/release/
