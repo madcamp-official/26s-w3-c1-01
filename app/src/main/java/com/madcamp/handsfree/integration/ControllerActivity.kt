@@ -20,6 +20,7 @@ import com.mobileconductor.orchestrator.ConductorContainer
 import com.mobileconductor.overlay.ClickFeedback
 import com.mobileconductor.overlay.OverlayBus
 import com.mobileconductor.overlay.OverlayService
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
@@ -40,6 +41,9 @@ class ControllerActivity : AppCompatActivity() {
     private lateinit var container: ConductorContainer
 
     private lateinit var statusText: TextView
+
+    /** 진행 중인 캘리브레이션. 재보정 시 이전 것을 취소하는 데 쓴다. */
+    private var calibrationJob: Job? = null
 
     private val permissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -74,7 +78,13 @@ class ControllerActivity : AppCompatActivity() {
     }
 
     private fun startPipeline() {
-        if (::container.isInitialized) return
+        // 파이프라인은 한 번만 세운다(카메라/오케스트레이터 이중 기동 방지).
+        // 다만 캘리브레이션은 다시 돌 수 있어야 한다 — 보정이 어긋났을 때
+        // 앱을 죽였다 켜는 것 말고 방법이 없으면 실기기에서 손을 못 댄다.
+        if (::container.isInitialized) {
+            runCalibration()
+            return
+        }
 
         tracker = FaceTracker(this)
         deps = RealConductorDependencies(applicationContext, lifecycleScope, tracker)
@@ -116,11 +126,15 @@ class ControllerActivity : AppCompatActivity() {
     }
 
     private fun runCalibration() {
-        lifecycleScope.launch {
+        // 진행 중에 버튼을 또 누르면 두 개의 수집 루프가 같은 좌표 스트림을 나눠 갖게 되고
+        // 양쪽 다 표본이 모자라 실패한다. 이전 실행을 취소하고 새로 시작한다.
+        calibrationJob?.cancel()
+        calibrationJob = lifecycleScope.launch {
             statusText.setText(R.string.status_calibrating)
             container.calibrationController.run(profileId = "default")
             // 프로파일이 A에 주입된 뒤에야 ACTIVE로 보낸다.
             // CALIBRATING에서는 모든 음성 명령이 폐기되므로 명령 주입으로는 못 나간다.
+            // 재보정일 때는 이미 ACTIVE라 이 호출이 무시된다(그대로 두는 게 맞다).
             container.orchestrator.onCalibrationComplete()
             OverlayBus.publishCalibration(null)
             statusText.setText(R.string.status_active)

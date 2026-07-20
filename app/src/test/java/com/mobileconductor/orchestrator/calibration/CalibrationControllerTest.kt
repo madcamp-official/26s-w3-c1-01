@@ -103,15 +103,23 @@ class CalibrationControllerTest {
         val controller = CalibrationController(
             source = ConstantFaceSource(yaw = 0f, pitch = 0f, faceDetected = false),
             consumer = consumer,
-            config = CalibrationConfig(samplesPerPoint = 5, noFaceTimeoutMs = 5_000L, maxRetriesPerStep = 3),
+            config = CalibrationConfig(
+                settleDelayMs = 1_000L,
+                samplesPerPoint = 5,
+                noFaceTimeoutMs = 5_000L,
+                maxRetriesPerStep = 3,
+            ),
             clock = fixedClock,
         )
 
-        // run은 재시작을 무한 반복하므로 백그라운드에서 돌리고, 3회 실패(각 5초 타임아웃)에
-        // 필요한 가상시간을 명시적으로 진행시킨다. first{}로 암묵적 idle-advance에 기대면
-        // backgroundScope 작업이 실제 시간 타임아웃(60s)까지 안 풀리는 경우가 있어 피한다.
+        // run은 재시작을 무한 반복하므로 백그라운드에서 돌리고, 3회 실패에 필요한 가상시간을
+        // 명시적으로 진행시킨다. first{}로 암묵적 idle-advance에 기대면 backgroundScope
+        // 작업이 실제 시간 타임아웃(60s)까지 안 풀리는 경우가 있어 피한다.
+        //
+        // 한 번의 시도 = settleDelay(안내 후 대기) + noFaceTimeout(수집 실패 판정).
+        // settleDelay가 타임아웃 밖에 있다는 것도 이 계산이 함께 고정한다.
         backgroundScope.launch { controller.run(profileId = "p") }
-        advanceTimeBy(3 * 5_000L + 100)
+        advanceTimeBy(3 * (1_000L + 5_000L) + 100)
         runCurrent()
 
         assertEquals(CalibrationPhase.RESTARTING, controller.uiState.value.phase)
