@@ -10,6 +10,7 @@ import android.graphics.PixelFormat
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import android.view.WindowManager
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
@@ -32,6 +33,9 @@ class OverlayService : LifecycleService() {
     private lateinit var overlayView: OverlayView
     private lateinit var layoutParams: WindowManager.LayoutParams
     private var added = false
+
+    /** 정지가 사용자 요청이었는지. onDestroy에서 원인을 구분하는 데만 쓴다 */
+    private var stoppedByUser = false
 
     override fun onCreate() {
         super.onCreate()
@@ -113,10 +117,25 @@ class OverlayService : LifecycleService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         if (intent?.action == ACTION_STOP) {
+            Log.i(TAG, "정지 요청 수신 (사용자가 정지 버튼을 눌렀다)")
+            stoppedByUser = true
             stopSelf()
             return START_NOT_STICKY
         }
+        Log.i(TAG, "서비스 시작 (intent=${intent?.action ?: "없음"}, flags=$flags)")
         return START_STICKY
+    }
+
+    /**
+     * 최근 앱 목록에서 밀어 없앴을 때. **여기서 서비스를 멈추지 않는다.**
+     *
+     * 다른 앱 위에서 쓰는 게 이 앱의 목적이라 화면을 치웠다고 컨트롤러가 죽으면 안 된다.
+     * 다만 일부 제조사(특히 삼성)는 이 콜백 뒤에 프로세스를 강제로 정리한다 —
+     * 그 경우 로그로 구분할 수 있어야 원인을 찾는다.
+     */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Log.i(TAG, "최근 앱에서 제거됨 — 서비스는 계속 유지한다")
+        super.onTaskRemoved(rootIntent)
     }
 
     private fun startAsForeground() {
@@ -149,6 +168,12 @@ class OverlayService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        // 사용자가 껐는지, 시스템/제조사가 죽였는지 구분해야 원인을 좁힐 수 있다
+        if (stoppedByUser) {
+            Log.i(TAG, "서비스 종료 — 사용자 요청")
+        } else {
+            Log.w(TAG, "서비스 종료 — 요청하지 않았는데 죽었다(시스템 또는 제조사 배터리 정책)")
+        }
         ControllerPipeline.stop()
         if (added) {
             windowManager.removeView(overlayView)
@@ -158,6 +183,7 @@ class OverlayService : LifecycleService() {
     }
 
     companion object {
+        private const val TAG = "OverlayService"
         private const val NOTIFICATION_ID = 1001
         private const val ACTION_STOP = "com.madcamp.handsfree.STOP_CONTROLLER"
 
