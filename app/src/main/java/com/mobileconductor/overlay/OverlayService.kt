@@ -11,6 +11,7 @@ import android.provider.Settings
 import android.view.WindowManager
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
+import com.madcamp.handsfree.integration.ControllerPipeline
 import com.mobileconductor.core.model.ControllerState
 import kotlinx.coroutines.launch
 
@@ -44,6 +45,11 @@ class OverlayService : LifecycleService() {
         }
 
         observeBus()
+
+        // 통합 시 추가. A/B/C/D 파이프라인의 수명을 이 서비스에 맞춘다.
+        // Activity가 들고 있으면 CameraX가 Activity 라이프사이클에 묶여서 앱을 나가는
+        // 순간 카메라가 끊긴다 — 다른 앱 위에서 쓰는 앱이라 그러면 성립하지 않는다.
+        ControllerPipeline.start(this)
     }
 
     private fun observeBus() {
@@ -113,6 +119,7 @@ class OverlayService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        ControllerPipeline.stop()
         if (added) {
             windowManager.removeView(overlayView)
             added = false

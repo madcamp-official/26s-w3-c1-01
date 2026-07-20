@@ -15,4 +15,5 @@
     <string name="status_calibrating">캘리브레이션 진행 중 — 화면 안내에 따라 각 지점을 바라보세요</string>
     <string name="status_active">동작 중 — 이 화면을 벗어나도 오버레이가 유지됩니다</string>
     <string name="status_permission_denied">카메라·마이크 권한이 없으면 동작할 수 없습니다</string>
+    <string name="status_need_overlay">먼저 2번(오버레이 권한)을 허용해 주세요</string>
 </resources>
