@@ -2,6 +2,7 @@ package com.madcamp.handsfree.integration
 
 import android.content.Context
 import com.example.hands_free_controller.input.InputExecutionEngine
+import com.madcamp.handsfree.telemetry.Telemetry
 import com.mobileconductor.core.model.ExecutionCommand
 import com.mobileconductor.core.model.ExecutionResult
 import com.mobileconductor.core.model.PointerFrame
@@ -26,6 +27,7 @@ class InputExecutionSink(
 ) : ExecutionSink {
 
     private val engine = InputExecutionEngine(context)
+    private val telemetryLogger = Telemetry.logger(context.applicationContext)
 
     private val _results = MutableSharedFlow<ExecutionResult>(
         extraBufferCapacity = 16,
@@ -39,7 +41,13 @@ class InputExecutionSink(
         // dispatchGesture는 접근성 서비스의 메인 루퍼에서 호출하는 게 안전하다.
         // 드래그의 continueStroke는 앞선 stroke와 같은 스레드 순서를 전제로 이어진다.
         withContext(Dispatchers.Main) {
-            engine.execute(command) { result -> _results.tryEmit(result) }
+            engine.execute(command) { result ->
+                telemetryLogger.logCommandExecuted(
+                    result = result,
+                    voiceToExecutionMs = System.currentTimeMillis() - command.timestamp,
+                )
+                _results.tryEmit(result)
+            }
         }
     }
 }

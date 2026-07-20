@@ -1,6 +1,7 @@
 package com.madcamp.handsfree.integration
 
 import android.content.Context
+import com.madcamp.handsfree.telemetry.Telemetry
 import com.madcamp.handsfree.tracking.FaceTracker
 import com.mobileconductor.orchestrator.ConductorDependencies
 import com.mobileconductor.orchestrator.port.CalibrationConsumer
@@ -24,6 +25,7 @@ class RealConductorDependencies(
     val tracker: FaceTracker,
 ) : ConductorDependencies {
 
+    private val telemetryLogger = Telemetry.logger(context.applicationContext)
     private val sink = InputExecutionSink(context)
     val voice = VoiceCommandSourceAdapter(context)
 
@@ -36,7 +38,31 @@ class RealConductorDependencies(
         // A의 좌표는 두 곳으로 간다: D(오버레이 렌더/게이트)와 C(터치를 찍을 위치).
         // D를 거쳐 C로 전달되는 구조가 아니라서 여기서 직접 중계한다.
         scope.launch {
-            tracker.pointerFrames.collect { sink.updatePointerFrame(it) }
+            var frameCount = 0
+            var faceLostCount = 0
+            var windowStartedAt = System.currentTimeMillis()
+
+            tracker.pointerFrames.collect { frame ->
+                sink.updatePointerFrame(frame)
+                frameCount += 1
+                if (!frame.faceDetected) faceLostCount += 1
+
+                val now = System.currentTimeMillis()
+                val elapsedMs = now - windowStartedAt
+                if (elapsedMs >= POINTER_SUMMARY_INTERVAL_MS) {
+                    telemetryLogger.logPerformanceSummary(
+                        avgPointerFps = frameCount * 1000f / elapsedMs,
+                        faceLostCount = faceLostCount,
+                    )
+                    frameCount = 0
+                    faceLostCount = 0
+                    windowStartedAt = now
+                }
+            }
         }
+    }
+
+    private companion object {
+        const val POINTER_SUMMARY_INTERVAL_MS = 60_000L
     }
 }

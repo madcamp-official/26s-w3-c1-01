@@ -2,21 +2,35 @@
 <resources>
     <string name="app_name">핸즈프리 컨트롤러</string>
 
-    <!-- 접근성 설정 목록에 노출되는 설명. 사용자가 이걸 보고 켤지 말지 정한다 -->
-    <string name="accessibility_service_description">얼굴 방향으로 정한 위치에 음성 명령으로 터치·스크롤·드래그를 대신 수행합니다. 화면 내용을 수집하거나 저장하지 않습니다.</string>
+    <string name="accessibility_service_description">얼굴 방향으로 정한 위치와 음성 명령으로 터치, 스크롤, 드래그를 대신 실행합니다. 화면 내용은 수집하거나 저장하지 않습니다.</string>
 
     <string name="setup_title">핸즈프리 컨트롤러</string>
-    <string name="setup_guide">순서대로 눌러 주세요. 접근성 서비스와 오버레이 권한이 없으면 명령이 실행되지 않습니다.</string>
+    <string name="setup_guide">순서대로 눌러 주세요. 접근성 서비스와 오버레이 권한이 없으면 명령을 실행할 수 없습니다.</string>
     <string name="btn_accessibility">1. 접근성 서비스 켜기</string>
     <string name="btn_overlay">2. 오버레이 권한 / 시작</string>
     <string name="btn_start">3. 시작</string>
     <string name="btn_recalibrate">캘리브레이션 다시 하기</string>
-
-    <string name="btn_stop">정지 (카메라·마이크 끄기)</string>
+    <string name="btn_stop">정지 (카메라, 마이크 끄기)</string>
 
     <string name="status_idle">대기 중</string>
-    <string name="status_calibrating">캘리브레이션 진행 중 — 화면 안내에 따라 각 지점을 바라보세요</string>
-    <string name="status_active">동작 중 — 이 화면을 벗어나도 오버레이가 유지됩니다</string>
-    <string name="status_permission_denied">카메라·마이크 권한이 없으면 동작할 수 없습니다</string>
-    <string name="status_need_overlay">먼저 2번(오버레이 권한)을 허용해 주세요</string>
+    <string name="status_calibrating">캘리브레이션 진행 중입니다. 화면 안내에 따라 각 지점을 바라보세요.</string>
+    <string name="status_active">동작 중입니다. 이 화면을 벗어나도 오버레이가 유지됩니다.</string>
+    <string name="status_permission_denied">카메라, 마이크 권한이 없으면 동작할 수 없습니다.</string>
+    <string name="status_need_overlay">먼저 2번에서 오버레이 권한을 허용해 주세요.</string>
+
+    <string name="telemetry_title">진단 데이터 전송</string>
+    <string name="telemetry_consent">익명 진단 데이터 전송에 동의합니다.</string>
+    <string name="telemetry_description">수집 항목: 앱 실행, 캘리브레이션 결과, 명령 성공/실패, 성능 지표, 오류, 사용자가 직접 입력한 피드백</string>
+    <string name="telemetry_not_collected">수집하지 않음: 카메라 영상, 얼굴 이미지, 음성 녹음, 화면 내용, 이름/전화번호 같은 개인정보</string>
+    <string name="feedback_hint">불편했던 점을 적어 주세요.</string>
+    <string name="feedback_situation_hint">명령 인식이 안 된 상황을 적어 주세요.</string>
+    <string name="btn_send_feedback">피드백 저장</string>
+    <string name="btn_upload_test">로컬 업로드 테스트(Logcat)</string>
+    <string name="btn_upload_firebase_test">Firebase 업로드 테스트</string>
+    <string name="telemetry_status_disabled">진단 데이터 전송 비동의 상태입니다.</string>
+    <string name="telemetry_status_enabled">진단 데이터 전송 동의됨 - 대기 이벤트 %1$d개</string>
+    <string name="telemetry_feedback_saved">피드백 저장됨 - 대기 이벤트 %1$d개</string>
+    <string name="telemetry_upload_test_started">로컬 업로드 테스트가 예약되었습니다.</string>
+    <string name="telemetry_firebase_upload_test_started">Firebase 업로드 테스트가 예약되었습니다.</string>
+    <string name="telemetry_feedback_empty">피드백 내용을 입력해 주세요.</string>
 </resources>

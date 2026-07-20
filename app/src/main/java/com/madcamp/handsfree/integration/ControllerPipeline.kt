@@ -4,12 +4,14 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
+import com.madcamp.handsfree.telemetry.Telemetry
 import com.madcamp.handsfree.tracking.FaceTracker
 import com.mobileconductor.core.model.CommandId
 import com.mobileconductor.core.model.ControllerState
 import com.mobileconductor.orchestrator.ConductorContainer
 import com.mobileconductor.overlay.ClickFeedback
 import com.mobileconductor.overlay.OverlayBus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +40,7 @@ object ControllerPipeline {
     private var deps: RealConductorDependencies? = null
     private var container: ConductorContainer? = null
     private var calibrationJob: Job? = null
+    private var appContext: Context? = null
 
     /** 서비스의 lifecycleScope. 서비스가 죽으면 여기 붙은 작업도 같이 취소된다. */
     private var scope: CoroutineScope? = null
@@ -79,6 +82,7 @@ object ControllerPipeline {
         deps = d
         container = c
         scope = service.lifecycleScope
+        appContext = service.applicationContext
 
         // 서비스의 라이프사이클에 바인딩된다 — 앱을 나가도 살아 있다
         t.start(service)
@@ -125,6 +129,7 @@ object ControllerPipeline {
         d: RealConductorDependencies,
     ) {
         val orchestrator = c.orchestrator
+        val telemetryLogger = Telemetry.logger(service.applicationContext)
 
         // 음성 인식이 반복 실패해도 앱에서 빠져나올 수 있어야 한다(FR-005)
         OverlayBus.onManualUnlock = { d.voice.inject(CommandId.UNLOCK) }
@@ -164,6 +169,14 @@ object ControllerPipeline {
         service.lifecycleScope.launch {
             orchestrator.notices.collect { Log.i(TAG, "안내 — $it") }
         }
+        service.lifecycleScope.launch {
+            d.tracker.errors.collect { error ->
+                telemetryLogger.logAppError(
+                    type = error.type.name,
+                    message = "trackerTimestamp=${error.timestamp}",
+                )
+            }
+        }
     }
 
     /**
@@ -194,9 +207,11 @@ object ControllerPipeline {
         }
         calibrationJob?.cancel()
         calibrationJob = s.launch {
+            val telemetryLogger = appContext?.let { Telemetry.logger(it) }
             _calibrating.value = true
             val started = System.currentTimeMillis()
             Log.i(TAG, "캘리브레이션 시작")
+            telemetryLogger?.logCalibrationStarted()
             try {
                 c.calibrationController.run(profileId = "default")
                 // 프로파일이 A에 주입된 뒤에야 ACTIVE로 보낸다.
@@ -204,7 +219,18 @@ object ControllerPipeline {
                 // 재보정일 때는 이미 ACTIVE라 이 호출이 무시된다(그대로 두는 게 맞다).
                 c.orchestrator.onCalibrationComplete()
                 OverlayBus.publishCalibration(null)
-                Log.i(TAG, "캘리브레이션 완료 — ${System.currentTimeMillis() - started}ms")
+                val durationMs = System.currentTimeMillis() - started
+                telemetryLogger?.logCalibrationCompleted(durationMs)
+                Log.i(TAG, "캘리브레이션 완료 — ${durationMs}ms")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                telemetryLogger?.logCalibrationFailed(e::class.simpleName ?: "CALIBRATION_FAILED")
+                telemetryLogger?.logAppError(
+                    type = "CALIBRATION_FAILED",
+                    message = e.message,
+                )
+                throw e
             } finally {
                 _calibrating.value = false
             }
@@ -227,6 +253,7 @@ object ControllerPipeline {
         deps = null
         container = null
         scope = null
+        appContext = null
         _calibrating.value = false
         Log.i(TAG, "파이프라인 정지")
     }

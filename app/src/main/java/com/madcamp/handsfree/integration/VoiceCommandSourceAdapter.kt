@@ -2,6 +2,7 @@ package com.madcamp.handsfree.integration
 
 import android.content.Context
 import android.util.Log
+import com.madcamp.handsfree.telemetry.Telemetry
 import com.madcamp.handsfree.voice.VoiceCommandListener
 import com.madcamp.handsfree.voice.VoiceEngineError
 import com.madcamp.handsfree.voice.VoiceRecognitionEngine
@@ -15,14 +16,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import com.madcamp.handsfree.voice.VoiceCommandEvent as BVoiceCommandEvent
 
 /**
- * B → D 경계 구현. 콜백(리스너) 기반인 B의 엔진을 D가 구독하는 Flow로 바꾼다.
- *
- * B와 D의 `VoiceCommandEvent`는 이름은 같지만 다른 타입이다 — B는 `commandId: String` +
- * rawText, D는 `commandId: CommandId` enum이다. **B의 문자열을 SSOT로 두고 여기서만
- * enum으로 바꾼다.** B의 CommandDictionary가 명령어 사전의 유일한 기준이라 B쪽을
- * enum으로 고치면 사전 수정이 두 곳으로 갈라진다.
- *
- * 두 타입을 한 파일에서 쓰므로 B쪽을 [BVoiceCommandEvent]로 별칭 처리했다.
+ * B -> D boundary. Converts B's callback-based voice engine into the Flow consumed by D.
  */
 class VoiceCommandSourceAdapter(
     context: Context,
@@ -30,24 +24,20 @@ class VoiceCommandSourceAdapter(
 
     private val _events = MutableSharedFlow<VoiceCommandEvent>(
         extraBufferCapacity = 16,
-        // 명령은 사람이 말하는 속도라 밀릴 일이 없지만, 밀리면 최신 명령이 더 중요하다
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
     override val events: Flow<VoiceCommandEvent> = _events.asSharedFlow()
 
+    private val telemetryLogger = Telemetry.logger(context.applicationContext)
     private val engine = VoiceRecognitionEngine(context, this)
+    private var voiceSuccessCount = 0
+    private var voiceFailureCount = 0
+    private var voiceWindowStartedAt = System.currentTimeMillis()
 
     fun start() = engine.start()
 
     fun stop() = engine.stop()
 
-    /**
-     * 음성을 거치지 않고 명령을 직접 넣는다.
-     *
-     * **LOCKED 수동 해제 버튼의 경로다(FR-005).** 음성 인식이 반복 실패하면 사용자가
-     * 앱에 갇히기 때문에 물리 터치로 UNLOCK을 넣을 수단이 항상 있어야 한다.
-     * UI를 정리한다고 지울 수 있는 경로가 아니다.
-     */
     fun inject(commandId: CommandId) {
         _events.tryEmit(
             VoiceCommandEvent(
@@ -59,17 +49,16 @@ class VoiceCommandSourceAdapter(
     }
 
     override fun onVoiceCommand(event: BVoiceCommandEvent) {
-        // 성공 경로에 로그가 없으면 "음성이 안 잡힌 것"과 "잡혔는데 D가 못 받은 것"을
-        // 구분할 수 없다. 명령 하나당 한 줄이라 양도 문제되지 않는다.
-        Log.i(TAG, "발화 인식 — \"${event.rawText}\" → ${event.commandId} (신뢰도 ${event.confidence})")
+        Log.i(TAG, "발화 인식 - \"${event.rawText}\" -> ${event.commandId} (신뢰도 ${event.confidence})")
 
         val commandId = runCatching { CommandId.valueOf(event.commandId) }.getOrNull()
         if (commandId == null) {
-            // B의 사전과 D의 enum이 어긋난 경우. 조용히 삼키면 "명령이 가끔 안 먹는다"로
-            // 나타나서 원인 찾기가 어렵다 — 반드시 로그를 남긴다.
             Log.e(TAG, "B의 commandId '${event.commandId}'가 D의 CommandId에 없다. 사전/enum 동기화 필요")
+            recordVoiceFailure("UNKNOWN_COMMAND_ID")
             return
         }
+
+        recordVoiceSuccess()
         _events.tryEmit(
             VoiceCommandEvent(
                 commandId = commandId,
@@ -80,18 +69,40 @@ class VoiceCommandSourceAdapter(
     }
 
     override fun onVoiceEngineError(error: VoiceEngineError) {
-        // D에는 음성 에러 채널이 없다(OPEN_ISSUES #8). 마이크 권한 거부는 진입 화면에서
-        // 이미 걸러지므로 MVP에서는 로그만 남기고, 필요해지면 포트를 추가한다.
         Log.e(TAG, "voice engine error: $error")
+        recordVoiceFailure(error::class.simpleName ?: "VOICE_ENGINE_ERROR")
     }
 
     override fun onUnrecognizedSpeech(rawText: String) {
-        // 이게 찍히면 마이크와 STT는 정상이고 사전 매칭만 실패한 것이다 —
-        // "음성 인식이 안 된다"와 완전히 다른 상황이라 구분이 중요하다
-        Log.i(TAG, "발화는 들렸으나 사전에 없음 — \"$rawText\"")
+        Log.i(TAG, "발화는 들렸으나 사전에 없음 - \"$rawText\"")
+        recordVoiceFailure("UNRECOGNIZED_SPEECH")
+    }
+
+    private fun recordVoiceSuccess() {
+        voiceSuccessCount += 1
+        publishVoiceSummaryIfNeeded()
+    }
+
+    private fun recordVoiceFailure(reason: String) {
+        voiceFailureCount += 1
+        telemetryLogger.logVoiceRecognitionFailed(reason)
+        publishVoiceSummaryIfNeeded()
+    }
+
+    private fun publishVoiceSummaryIfNeeded() {
+        val now = System.currentTimeMillis()
+        if (now - voiceWindowStartedAt < VOICE_SUMMARY_INTERVAL_MS) return
+
+        val total = voiceSuccessCount + voiceFailureCount
+        val failureRate = if (total == 0) 0f else voiceFailureCount.toFloat() / total
+        telemetryLogger.logPerformanceSummary(voiceFailureRate = failureRate)
+        voiceSuccessCount = 0
+        voiceFailureCount = 0
+        voiceWindowStartedAt = now
     }
 
     private companion object {
         const val TAG = "VoiceAdapter"
+        const val VOICE_SUMMARY_INTERVAL_MS = 60_000L
     }
 }

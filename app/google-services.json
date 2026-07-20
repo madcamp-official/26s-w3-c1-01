@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "4585840052",
+    "project_id": "handsfree-controller",
+    "storage_bucket": "handsfree-controller.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:4585840052:android:7a3b7644adc5221b8fa6e1",
+        "android_client_info": {
+          "package_name": "com.madcamp.handsfree"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAV7IsOPe5ELQEVuQtsZReCrEmAZTraXLM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

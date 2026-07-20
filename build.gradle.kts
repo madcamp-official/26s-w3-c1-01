@@ -13,4 +13,5 @@
 // Compose 컴파일러 플러그인도 같은 이유로 붙이지 않는다.
 plugins {
     id("com.android.application") version "9.3.0" apply false
+    id("com.google.gms.google-services") version "4.5.0" apply false
 }

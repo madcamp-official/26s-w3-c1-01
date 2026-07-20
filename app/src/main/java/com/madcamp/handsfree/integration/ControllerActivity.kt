@@ -8,11 +8,18 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.Surface
 import android.widget.Button
+import android.widget.CheckBox
+import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.madcamp.handsfree.R
+import com.madcamp.handsfree.telemetry.LocalTelemetryQueue
+import com.madcamp.handsfree.telemetry.Telemetry
+import com.madcamp.handsfree.telemetry.TelemetryCrashHandler
+import com.madcamp.handsfree.telemetry.TelemetrySettings
+import com.madcamp.handsfree.telemetry.TelemetryUploadWorker
 import com.mobileconductor.overlay.OverlayService
 import kotlinx.coroutines.launch
 
@@ -29,19 +36,39 @@ import kotlinx.coroutines.launch
 class ControllerActivity : AppCompatActivity() {
 
     private lateinit var statusText: TextView
+    private lateinit var telemetryStatusText: TextView
+    private lateinit var telemetrySettings: TelemetrySettings
+    private lateinit var telemetryQueue: LocalTelemetryQueue
 
     private val permissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { granted ->
-        if (granted.values.all { it }) startControllerAndCalibrate()
-        else statusText.setText(R.string.status_permission_denied)
+        val telemetryLogger = Telemetry.logger(applicationContext)
+        if (granted.values.all { it }) {
+            startControllerAndCalibrate()
+        } else {
+            if (granted[Manifest.permission.RECORD_AUDIO] == false) {
+                telemetryLogger.logAppError("MIC_PERMISSION_DENIED")
+            }
+            if (granted[Manifest.permission.CAMERA] == false) {
+                telemetryLogger.logAppError("CAMERA_PERMISSION_DENIED")
+            }
+            statusText.setText(R.string.status_permission_denied)
+            updateTelemetryStatus()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_controller)
 
+        TelemetryCrashHandler.install(applicationContext)
+        TelemetryUploadWorker.scheduleDailyAt9(applicationContext)
+
+        telemetrySettings = TelemetrySettings(applicationContext)
+        telemetryQueue = LocalTelemetryQueue(applicationContext)
         statusText = findViewById(R.id.status_text)
+        telemetryStatusText = findViewById(R.id.telemetry_status_text)
 
         findViewById<Button>(R.id.btn_accessibility).setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -62,6 +89,51 @@ class ControllerActivity : AppCompatActivity() {
             statusText.setText(R.string.status_idle)
         }
 
+        val telemetryLogger = Telemetry.logger(applicationContext)
+        val telemetryConsent = findViewById<CheckBox>(R.id.checkbox_telemetry_consent)
+        telemetryConsent.isChecked = telemetrySettings.diagnosticsEnabled
+        telemetryConsent.setOnCheckedChangeListener { _, isChecked ->
+            telemetrySettings.diagnosticsEnabled = isChecked
+            if (isChecked) {
+                telemetryLogger.logAppOpened()
+            }
+            updateTelemetryStatus()
+        }
+        telemetryLogger.logAppOpened()
+
+        val feedbackMessage = findViewById<EditText>(R.id.feedback_message)
+        val feedbackSituation = findViewById<EditText>(R.id.feedback_situation)
+        findViewById<Button>(R.id.btn_send_feedback).setOnClickListener {
+            val message = feedbackMessage.text.toString().trim()
+            val situation = feedbackSituation.text.toString().trim()
+            if (message.isBlank() && situation.isBlank()) {
+                telemetryStatusText.setText(R.string.telemetry_feedback_empty)
+                return@setOnClickListener
+            }
+            telemetryLogger.logUserFeedback(message, situation)
+            feedbackMessage.text.clear()
+            feedbackSituation.text.clear()
+            telemetryStatusText.text = getString(
+                R.string.telemetry_feedback_saved,
+                telemetryQueue.count(),
+            )
+        }
+        findViewById<Button>(R.id.btn_upload_test).setOnClickListener {
+            TelemetryUploadWorker.enqueueManualTestUpload(
+                context = applicationContext,
+                useLogcatUploader = true,
+            )
+            telemetryStatusText.setText(R.string.telemetry_upload_test_started)
+        }
+        findViewById<Button>(R.id.btn_upload_firebase_test).setOnClickListener {
+            TelemetryUploadWorker.enqueueManualTestUpload(
+                context = applicationContext,
+                useLogcatUploader = false,
+            )
+            telemetryStatusText.setText(R.string.telemetry_firebase_upload_test_started)
+        }
+        updateTelemetryStatus()
+
         lifecycleScope.launch {
             ControllerPipeline.calibrating.collect { running ->
                 statusText.setText(
@@ -72,6 +144,14 @@ class ControllerActivity : AppCompatActivity() {
                     }
                 )
             }
+        }
+    }
+
+    private fun updateTelemetryStatus() {
+        telemetryStatusText.text = if (telemetrySettings.diagnosticsEnabled) {
+            getString(R.string.telemetry_status_enabled, telemetryQueue.count())
+        } else {
+            getString(R.string.telemetry_status_disabled)
         }
     }
 

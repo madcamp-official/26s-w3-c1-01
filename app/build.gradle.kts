@@ -2,6 +2,7 @@ plugins {
     // Kotlin 플러그인을 따로 적용하지 않는다 — AGP 9에 내장돼 있다.
     // 추가하면 'kotlin' 확장 중복 등록으로 Sync가 실패한다.
     id("com.android.application")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -60,7 +61,11 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     // D의 OverlayService가 LifecycleService를 상속한다
     implementation("androidx.lifecycle:lifecycle-service:2.8.7")
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation(platform("com.google.firebase:firebase-bom:34.16.0"))
+    implementation("com.google.firebase:firebase-firestore")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 
     // CameraX — 전면 카메라 프레임 스트림 (A)
     val cameraX = "1.4.0"
