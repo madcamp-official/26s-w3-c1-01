@@ -187,10 +187,13 @@ class FirebaseTelemetryUploader(
     private fun TelemetryEvent.toFeedbackMap(): Map<String, Any> {
         return mapOf(
             "eventId" to eventId,
+            "eventName" to eventName,
+            "category" to category(),
             "eventDate" to localDate(),
             "timestamp" to timestamp,
             "uploadedAt" to System.currentTimeMillis(),
             "sessionId" to sessionId,
+            "installId" to installId,
             "deviceModel" to deviceModel,
             "androidVersion" to androidVersion,
             "appVersion" to appVersion,
