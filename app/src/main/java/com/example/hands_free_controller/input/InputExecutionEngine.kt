@@ -119,7 +119,7 @@ class InputExecutionEngine(
             startY = swipe.startY,
             endX = swipe.endX,
             endY = swipe.endY,
-            durationMs = SWIPE_DURATION_MS,
+            durationMs = swipeDurationFor(command.commandId),
         ) { gestureSuccess ->
             onResult(
                 command.result(
@@ -347,6 +347,21 @@ class InputExecutionEngine(
     }
 
     /**
+     * 스크롤과 페이지 넘김은 OS가 판정하는 방식이 달라 스와이프 시간도 달라야 한다.
+     *
+     * - **스크롤(위/아래)**: 손을 뗀 순간의 *속도*로 관성 스크롤이 걸린다. 짧을수록 좋다.
+     * - **페이지 넘김(좌우)**: 런처가 손가락을 *따라가며* 페이지를 끌다가 절반을 넘겼는지
+     *   보고 확정한다. 중간 이동 이벤트가 충분해야 하므로 **길어야 한다.**
+     *
+     * 실기기에서 좌우에 스크롤과 같은 160ms를 썼더니, 아이콘에 눌림 모션만 보이고
+     * 페이지가 넘어가지 않았다 — 런처가 "누르고 뗐다"로 본 것이다.
+     */
+    private fun swipeDurationFor(commandId: CommandId): Long = when (commandId) {
+        CommandId.NEXT, CommandId.PREV -> PAGE_SWIPE_DURATION_MS
+        else -> SCROLL_SWIPE_DURATION_MS
+    }
+
+    /**
      * 스크롤 한 번에 화면의 몇 배를 움직일지.
      *
      * 실기기에서 기본값(0.5)으로는 "화면이 안 넘어간다"는 평가가 나왔다. 거리도
@@ -417,16 +432,22 @@ class InputExecutionEngine(
 
     private companion object {
         /**
-         * 스와이프에 걸리는 시간. **거리보다 이 값이 중요하다.**
+         * 스크롤(위/아래) 스와이프 시간.
          *
-         * 안드로이드는 손가락을 뗀 순간의 **속도**로 플링(관성 스크롤/페이지 넘김)
-         * 여부를 판정한다. 320ms로 천천히 끌면 화면이 손가락을 따라 조금 움직였다가
-         * 임계값을 못 넘고 **제자리로 돌아온다** — 실기기에서 "조금 움직이다 말고
-         * 화면이 안 넘어간다"는 증상이 이거였다.
-         *
-         * 너무 줄이면(50ms 미만) 이벤트가 몇 개 안 생겨서 속도 계산이 불안정해진다.
+         * 안드로이드는 손을 뗀 순간의 **속도**로 관성 스크롤을 건다. 320ms로 천천히
+         * 끌면 화면이 조금 움직였다가 임계값을 못 넘고 제자리로 돌아온다.
+         * 너무 줄이면(50ms 미만) 이벤트가 몇 개 안 생겨 속도 계산이 불안정해진다.
          */
-        const val SWIPE_DURATION_MS = 160L
+        const val SCROLL_SWIPE_DURATION_MS = 160L
+
+        /**
+         * 페이지 넘김(좌우) 스와이프 시간. **스크롤보다 길어야 한다.**
+         *
+         * 런처는 속도가 아니라 "손가락을 따라 페이지를 끌다가 절반을 넘겼는가"로
+         * 판정하므로 중간 이동 이벤트가 촘촘해야 한다. 160ms로는 샘플이 부족해
+         * 아이콘에 눌림 모션만 나타나고 페이지가 넘어가지 않았다.
+         */
+        const val PAGE_SWIPE_DURATION_MS = 400L
 
         /**
          * 좌우 스와이프(NEXT/PREV) 거리. 화면 폭 대비 비율.
