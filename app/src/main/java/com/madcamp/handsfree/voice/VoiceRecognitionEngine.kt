@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -46,6 +47,14 @@ class VoiceRecognitionEngine(
 
     /** 오프라인 상태에서 연속으로 난 하드 에러 수. 인식 성공 시 0으로 돌아간다. */
     private var consecutiveHardErrors = 0
+
+    /**
+     * 사용자가 말하기 시작한 시각(단조 시계). 0이면 아직 발화가 없다.
+     *
+     * **체감으로는 "빨라진 것 같기도"에서 판단이 멈춘다.** 침묵 시간을 몇으로 둘지는
+     * 숫자를 봐야 정할 수 있어서, 발화 시작 → 결과 확정까지를 직접 잰다.
+     */
+    private var speechStartedAt = 0L
 
     fun start() {
         if (isListening) return
@@ -113,7 +122,23 @@ class VoiceRecognitionEngine(
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, useOffline)
+            // 발화가 끝난 뒤 결과를 확정하기까지 기다리는 침묵 시간.
+            // 기본값(1.5~2초)이 명령 지연의 가장 큰 몫이라 줄인다.
+            //
+            // **최소값으로 밀면 안 된다.** "조금 아래로", "드래그 취소"처럼 여러 단어짜리
+            // 명령은 중간에 짧게 끊기는데, 침묵을 너무 짧게 잡으면 앞부분만 인식하고
+            // 끝내버린다. "드래그 취소"가 "취소"(=BACK, 뒤로가기)로 잘리면 의도와 다른
+            // 명령이 실제로 실행된다.
+            //
+            // **제조사가 이 값을 무시하는 경우가 흔하다.** 효과가 없으면 이 방향을
+            // 접어야지 더 줄이면 안 된다.
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, COMPLETE_SILENCE_MS)
+            putExtra(
+                RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
+                COMPLETE_SILENCE_MS,
+            )
         }
+        speechStartedAt = 0L
         speechRecognizer?.startListening(intent)
     }
 
@@ -130,6 +155,13 @@ class VoiceRecognitionEngine(
 
         // 결과가 돌아왔다 = 현재 모드가 동작한다. 폴백 카운터를 되돌린다
         consecutiveHardErrors = 0
+
+        // 침묵 시간을 몇으로 둘지 정하려면 이 숫자가 있어야 한다.
+        // 대부분이 "말이 끝난 뒤 기다린 시간"이라, 여기가 안 줄면 이 방향은 끝이다.
+        if (speechStartedAt > 0L) {
+            val elapsed = SystemClock.elapsedRealtime() - speechStartedAt
+            Log.i(TAG, "발화 시작 → 결과 확정 ${elapsed}ms (침묵 설정 ${COMPLETE_SILENCE_MS}ms)")
+        }
 
         if (rawText.isNullOrEmpty()) {
             scheduleRestart()
@@ -199,7 +231,10 @@ class VoiceRecognitionEngine(
             mainHandler.removeCallbacks(unresponsiveWatchdog)
         }
 
-        override fun onBeginningOfSpeech() {}
+        override fun onBeginningOfSpeech() {
+            speechStartedAt = SystemClock.elapsedRealtime()
+        }
+
         override fun onRmsChanged(rmsdB: Float) {}
         override fun onBufferReceived(buffer: ByteArray?) {}
         override fun onEndOfSpeech() {}
@@ -224,6 +259,15 @@ class VoiceRecognitionEngine(
 
         /** 이만큼 연속 실패하면 온라인으로 되돌린다 */
         private const val OFFLINE_FALLBACK_THRESHOLD = 3
+
+        /**
+         * 발화 종료를 확정하기까지 기다리는 침묵 시간.
+         *
+         * 안드로이드 기본값은 1.5~2초라 짧은 명령("터치")에도 그만큼 지연이 붙는다.
+         * 1000ms는 여러 단어 명령("조금 아래로")이 잘리지 않는 선에서 잡은 값이다.
+         * **더 줄이기 전에 반드시 실기기에서 여러 단어 명령을 확인할 것.**
+         */
+        private const val COMPLETE_SILENCE_MS = 1_000L
 
         /**
          * startListening 후 이 시간 안에 onReadyForSpeech가 안 오면 죽은 것으로 본다.
