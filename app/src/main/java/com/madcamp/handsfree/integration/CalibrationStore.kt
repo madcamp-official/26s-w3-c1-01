@@ -21,6 +21,19 @@ import com.mobileconductor.core.model.Level
 object CalibrationStore {
 
     private const val PREFS = "calibration"
+
+    /**
+     * 저장 형식/각도 규약 버전.
+     *
+     * **yaw·pitch의 의미가 바뀌면 반드시 올릴 것.** 저장된 숫자는 그대로인데
+     * 해석이 바뀌면 앱은 아무 경고 없이 엉뚱한 범위로 매핑한다 — 사용자 눈에는
+     * "고쳤다는데 그대로네"로 보인다.
+     *
+     * v2: HeadPose를 오일러 분해에서 forward 벡터 방식으로 바꾸면서 pitch 부호가
+     *     뒤집혔다. v1로 저장된 프로파일은 쓸 수 없다.
+     */
+    private const val VERSION = 2
+    private const val KEY_VERSION = "schemaVersion"
     private const val KEY_ID = "profileId"
     private const val KEY_POINTS = "referencePoints"
     private const val KEY_YAW_MIN = "faceRangeYawMin"
@@ -36,6 +49,7 @@ object CalibrationStore {
 
     fun save(context: Context, profile: CalibrationProfile) {
         prefs(context).edit()
+            .putInt(KEY_VERSION, VERSION)
             .putString(KEY_ID, profile.profileId)
             .putString(KEY_POINTS, encodePoints(profile.referencePoints))
             .putFloat(KEY_YAW_MIN, profile.faceRangeYawMin)
@@ -58,6 +72,12 @@ object CalibrationStore {
      */
     fun load(context: Context): CalibrationProfile? {
         val p = prefs(context)
+        val version = p.getInt(KEY_VERSION, 0)
+        if (version != VERSION) {
+            Log.i(TAG, "각도 규약이 바뀌어 저장된 프로파일을 버린다 (v$version → v$VERSION) — 재보정 필요")
+            clear(context)
+            return null
+        }
         val id = p.getString(KEY_ID, null) ?: return null
         return try {
             val points = decodePoints(p.getString(KEY_POINTS, "") ?: "")
