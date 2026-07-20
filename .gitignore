@@ -27,8 +27,9 @@ local.properties
 keystore.properties
 
 # ── 큰 바이너리 ────────────────────────────────────────────
-# MediaPipe 모델 3.7MB. 각자 내려받는다 — app/src/main/assets/README.md 참고
-app/src/main/assets/*.task
+# MediaPipe 모델(face_landmarker.task, 3.7MB)은 저장소에 포함한다.
+# 제외했더니 클론한 팀원이 MODEL_LOAD_FAILED만 보고 원인을 몰랐다.
+# 3.7MB는 git이 감당할 크기이고, 없으면 앱이 아예 안 돌아가는 필수 파일이다.
 
 # 작업 회선이 10MB 넘는 다운로드를 끊어서 큰 아티팩트만 미리 받아둔 로컬 저장소(44MB).
 # 이 컴퓨터 사정이지 프로젝트 구성이 아니다. 정상 회선에서는 없어도 빌드가 된다

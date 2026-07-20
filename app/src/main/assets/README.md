@@ -1,9 +1,13 @@
-# assets — 모델 파일을 여기에 넣어야 한다
+# assets — 모델 파일
 
-이 폴더에 **`face_landmarker.task`** 파일이 있어야 앱이 동작한다.
+이 폴더의 **`face_landmarker.task`** 가 있어야 앱이 동작한다.
 없으면 실행 즉시 `MODEL_LOAD_FAILED` 오류가 뜨고 포인터가 움직이지 않는다.
 
-바이너리 파일이라 저장소에 커밋하지 않았다. 아래에서 직접 받아 이 폴더에 둘 것:
+**이 파일은 저장소에 포함돼 있다.** 클론하면 바로 있으니 따로 받을 필요가 없다.
+(통합 전에는 gitignore로 제외했었는데, 클론한 팀원이 `MODEL_LOAD_FAILED`만 보고
+원인을 알 수 없어서 포함하는 쪽으로 바꿨다. 3.7MB는 git이 감당할 크기다.)
+
+원본 출처 — 손상되거나 갱신이 필요할 때만 쓴다:
 
 ```
 https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task
