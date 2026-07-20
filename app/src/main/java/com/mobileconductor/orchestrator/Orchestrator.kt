@@ -79,6 +79,27 @@ class Orchestrator(
         }
     }
 
+    /**
+     * 캘리브레이션 완료 → ACTIVE 진입. **통합 시 추가된 유일한 상태 전이 경로다.**
+     *
+     * [com.mobileconductor.orchestrator.state.TransitionTable]에 CALIBRATING 규칙이
+     * 하나도 없어서(= 그 상태에서는 모든 음성 명령이 폐기된다) 음성으로는 여기서 빠져나올
+     * 수 없다. 의도된 설계이고(FR-006: 보정 전 ACTIVE 진입 차단), 대신 보정 완료라는
+     * 사실만이 전이를 일으켜야 하므로 명령이 아닌 별도 진입점으로 뒀다.
+     *
+     * CALIBRATING이 아닐 때 호출하면 무시한다 — 재보정 중 중복 호출로 상태가
+     * 튀지 않게 하기 위해서다.
+     */
+    fun onCalibrationComplete() {
+        scope.launch {
+            mutex.withLock {
+                if (stateHolder.current != ControllerState.CALIBRATING) return@withLock
+                stateHolder.set(ControllerState.ACTIVE)
+                onStateEntered(ControllerState.ACTIVE)
+            }
+        }
+    }
+
     /** 구독을 중단하고 안전장치 타이머를 해제한다. */
     fun stop() {
         job?.cancel()

@@ -1,35 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 오버레이(포인터/상태 인디케이터) 표시용 — FR-008 -->
+    <!-- A: 얼굴/시선 추적 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- B: 음성 명령 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- D: 오버레이(포인터/상태 인디케이터) 표시 — FR-008 -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- 오버레이를 상시 유지하기 위한 포그라운드 서비스 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <application
-        android:allowBackup="true"
-        android:label="Mobile Conductor"
-        android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.NoActionBar">
+    <!-- 전면 카메라가 없는 기기에는 설치 의미가 없지만, required=false로 두어
+         카메라 없는 기기에서도 설치는 되게 한다(에뮬레이터 디버깅 대비) -->
+    <uses-feature
+        android:name="android.hardware.camera.front"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="true" />
 
+    <application
+        android:allowBackup="false"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Handsfree">
+
+        <!-- 통합 진입점. A의 TrackerDebugActivity와 D의 DebugActivity를 대체한다.
+             실제 조작 UI는 오버레이라서 이 화면은 권한 확보와 캘리브레이션 시작만 한다.
+             configChanges로 회전을 직접 받는 이유는 회전 시 파이프라인을 통째로
+             재생성하지 않고 트래커에 각도만 알려주기 위해서다(OPEN_ISSUES #5). -->
         <activity
-            android:name=".DebugActivity"
-            android:exported="true">
+            android:name=".integration.ControllerActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout"
+            android:screenOrientation="fullSensor">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <!-- D: 오버레이 -->
         <service
-            android:name=".overlay.OverlayService"
+            android:name="com.mobileconductor.overlay.OverlayService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="hands_free_overlay_controller" />
+        </service>
+
+        <!-- C: 다른 앱 위에 터치를 주입하는 접근성 서비스.
+             사용자가 설정에서 직접 켜야 하고, 켜기 전에는 모든 명령이
+             ACCESSIBILITY_SERVICE_NOT_CONNECTED로 실패한다. -->
+        <service
+            android:name="com.example.hands_free_controller.service.GestureAccessibilityService"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
         </service>
 
     </application>

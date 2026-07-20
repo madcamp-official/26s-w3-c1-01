@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">핸즈프리 컨트롤러</string>
+
+    <!-- 접근성 설정 목록에 노출되는 설명. 사용자가 이걸 보고 켤지 말지 정한다 -->
+    <string name="accessibility_service_description">얼굴 방향으로 정한 위치에 음성 명령으로 터치·스크롤·드래그를 대신 수행합니다. 화면 내용을 수집하거나 저장하지 않습니다.</string>
+
+    <string name="setup_title">핸즈프리 컨트롤러</string>
+    <string name="setup_guide">순서대로 눌러 주세요. 접근성 서비스와 오버레이 권한이 없으면 명령이 실행되지 않습니다.</string>
+    <string name="btn_accessibility">1. 접근성 서비스 켜기</string>
+    <string name="btn_overlay">2. 오버레이 권한 / 시작</string>
+    <string name="btn_start">3. 캘리브레이션 시작</string>
+
+    <string name="status_idle">대기 중</string>
+    <string name="status_calibrating">캘리브레이션 진행 중 — 화면 안내에 따라 각 지점을 바라보세요</string>
+    <string name="status_active">동작 중 — 이 화면을 벗어나도 오버레이가 유지됩니다</string>
+    <string name="status_permission_denied">카메라·마이크 권한이 없으면 동작할 수 없습니다</string>
+</resources>
