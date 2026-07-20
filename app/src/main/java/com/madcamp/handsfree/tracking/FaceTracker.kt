@@ -252,8 +252,9 @@ class FaceTracker(
         if (traceIndex++ % TRACE_INTERVAL != 0) return
         Log.d(
             TRACE_TAG,
-            "yaw=%.1f pitch=%.1f eyeX=%.3f eyeY=%.3f -> x=%.3f y=%.3f".format(
-                raw.yaw, raw.pitch, raw.eyeOffsetX, raw.eyeOffsetY, frame.x, frame.y,
+            "yaw=%.1f pitch=%.1f(보정후 %.1f) eyeX=%.3f eyeY=%.3f -> x=%.3f y=%.3f".format(
+                raw.yaw, raw.pitch, mapper.lastCorrectedPitch,
+                raw.eyeOffsetX, raw.eyeOffsetY, frame.x, frame.y,
             ),
         )
     }

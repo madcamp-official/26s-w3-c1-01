@@ -41,6 +41,26 @@ class PointerMapper {
     private var pitchCouplingK = 0f
     private var yawCenter = 0f
 
+    /**
+     * 보정을 적용할 dYaw의 상·하한(캘리브레이션에서 실제로 측정한 범위).
+     *
+     * **이차식을 측정 범위 밖으로 외삽하면 안 된다.** 실기기에서 캘리브레이션 때보다
+     * 고개를 더 돌리자 보정량이 제곱으로 자라 1.5배 과보정됐고, 호가 반대 방향
+     * (위로 볼록)으로 뒤집혔다. 범위 밖에서는 보정량을 끝값으로 고정한다.
+     */
+    private var couplingYawMin = 0f
+    private var couplingYawMax = 0f
+
+    /**
+     * 직전 프레임의 보정 후 pitch. 트레이스 로그 전용이다.
+     *
+     * 보정이 과했는지 모자랐는지는 원본 pitch만 봐서는 알 수 없어서,
+     * 계측 때 두 값을 나란히 볼 수 있게 열어뒀다. 호 문제가 끝나면 지운다.
+     */
+    @Volatile
+    var lastCorrectedPitch: Float = 0f
+        private set
+
     /** D가 프로파일을 갱신하면(재보정 포함) 즉시 반영한다 */
     fun updateProfile(newProfile: CalibrationProfile) {
         profile = newProfile
@@ -72,6 +92,10 @@ class PointerMapper {
         yawCenter = center.yaw
         val dl = left.yaw - center.yaw
         val dr = right.yaw - center.yaw
+        // LEFT가 항상 음수 쪽이라는 보장이 없다(부호 규약이 바뀌면 뒤집힌다)
+        couplingYawMin = minOf(dl, dr)
+        couplingYawMax = maxOf(dl, dr)
+
         val spread = (dl * dl + dr * dr) / 2f
         // 좌우로 거의 안 돌린 보정이면 나눗셈이 폭발한다. 보정을 포기하는 쪽이 안전하다
         if (spread < 1f) {
@@ -107,8 +131,12 @@ class PointerMapper {
         // 1) 고개를 좌우로 돌릴 때 딸려 들어온 pitch를 먼저 걷어낸다.
         //    이걸 정규화 뒤에 하면 이미 화면 좌표로 변환된 값을 손대는 셈이라
         //    보정 범위와 어긋난다 — 반드시 각도 단계에서 처리한다.
-        val dYaw = raw.yaw - yawCenter
+        //    보정은 측정 범위 안에서만 이차식을 따르고, 밖에서는 끝값으로 고정한다.
+        //    클램핑을 빼면 캘리브레이션보다 고개를 더 돌렸을 때 보정이 제곱으로
+        //    자라서 과보정되고, 호가 반대 방향으로 뒤집힌다.
+        val dYaw = (raw.yaw - yawCenter).coerceIn(couplingYawMin, couplingYawMax)
         val correctedPitch = raw.pitch - pitchCouplingK * dYaw * dYaw
+        lastCorrectedPitch = correctedPitch
 
         // 2) 캘리브레이션 범위 기준 선형 정규화 (9점 보간은 하지 않는다 — OPEN_ISSUES #6)
         var nx = normalize(raw.yaw, p.faceRangeYawMin, p.faceRangeYawMax)
