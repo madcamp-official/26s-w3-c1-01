@@ -16,15 +16,23 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 원본 이벤트와 사용자 피드백: 생성만 허용.
-    // update/delete를 막는 이유는 남이 남의 제보를 고치거나 지우지 못하게 하기 위해서다.
+    // 원본 이벤트와 사용자 피드백. 읽기·삭제는 막는다.
+    //
+    // **컬렉션마다 필드 구성이 다르다.** 처음에 둘 다 같은 검증(eventName 필수)을
+    // 걸었다가 업로드가 통째로 막혔다 — toFeedbackMap()에는 eventName이 없는데,
+    // batch는 원자적이라 피드백 하나가 거부되면 같은 배치의 이벤트 66개가 함께 죽는다.
+    //
+    // update를 여는 이유: 업로드는 성공했는데 removeUploaded() 전에 앱이 죽으면
+    // 같은 eventId가 재업로드된다. 그때 문서가 이미 있어 update가 되는데,
+    // 막아두면 그 사용자는 이후 업로드가 영구히 실패한다. 읽기가 막혀 있어
+    // 남의 eventId(UUID)를 알아낼 방법이 없으므로 덮어쓰기 위험은 낮다.
     match /telemetry_events/{eventId} {
-      allow create: if isValidEvent();
-      allow read, update, delete: if false;
+      allow create, update: if hasEventShape();
+      allow read, delete: if false;
     }
     match /telemetry_feedback/{eventId} {
-      allow create: if isValidEvent();
-      allow read, update, delete: if false;
+      allow create, update: if hasFeedbackShape();
+      allow read, delete: if false;
     }
 
     // 집계 문서는 FieldValue.increment로 같은 문서를 계속 병합해서 update가 필수다.
@@ -65,11 +73,22 @@ service cloud.firestore {
     }
 
     // 익명 클라이언트가 쓰는 구조라 완전한 방어는 불가능하다.
-    // 실수나 장난으로 거대한 문서가 들어오는 것만 막는 수준의 형태 검증이다.
-    function isValidEvent() {
+    // 실수나 장난으로 이상한 문서가 들어오는 것만 막는 수준의 형태 검증이다.
+    //
+    // **검증을 추가할 때는 실제 업로드 코드(TelemetryUploader.kt)의 map을 먼저 볼 것.**
+    // 코드에 없는 필드를 요구하면 그 컬렉션만이 아니라 배치 전체가 죽는다.
+
+    // toFirestoreMap() 기준
+    function hasEventShape() {
       return request.resource.data.keys().hasAll(['eventId', 'eventName', 'timestamp'])
           && request.resource.data.eventName is string
           && request.resource.data.eventName.size() < 64;
+    }
+
+    // toFeedbackMap() 기준 — eventName이 없다
+    function hasFeedbackShape() {
+      return request.resource.data.keys().hasAll(['eventId', 'timestamp'])
+          && request.resource.data.get('message', '') is string;
     }
   }
 }
