@@ -27,6 +27,9 @@ class OverlayView(context: Context) : View(context) {
     private var pointer: PointerFrame? = null
     private var calibration: CalibrationUiState? = null
 
+    /** 얼굴 미검출 여부. 상태(ControllerState)와는 별개의 신호라 따로 들고 있는다. */
+    private var faceLost: Boolean = false
+
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -50,8 +53,19 @@ class OverlayView(context: Context) : View(context) {
         invalidate()
     }
 
+    /**
+     * 얼굴을 놓친 프레임은 **좌표를 갱신하지 않고 마지막 위치를 유지한다.**
+     *
+     * A는 미검출 시 (0.5, 0.5)를 보낸다 — null을 안 보내려는 결정이라(OPEN_ISSUES #3)
+     * 좌표 자체는 의미가 없다. 그대로 그리면 얼굴을 가릴 때마다 포인터가 화면 중앙으로
+     * 순간이동해서 **사용자가 조작하던 위치를 잃는다.** 마지막 위치를 누가 들고 있을지
+     * A와 D 사이에 정해진 적이 없어 통합에서 소비 측(D)이 맡기로 했다.
+     *
+     * 얼굴 미검출은 에러가 아니라 안내 대상이다(FR-001) — [faceLost]로 표시만 한다.
+     */
     fun setPointer(frame: PointerFrame) {
-        this.pointer = frame
+        faceLost = !frame.faceDetected
+        if (frame.faceDetected) this.pointer = frame
         invalidate()
     }
 
@@ -142,9 +156,16 @@ class OverlayView(context: Context) : View(context) {
     private fun drawIndicator(canvas: Canvas, w: Float) {
         val cx = w / 2f
         val cy = dp(28f)
-        fill.color = colorFor(visuals.indicatorColor); fill.alpha = 255
+
+        // 얼굴 미검출은 상태 머신과 무관한 신호라 OverlayVisuals가 모른다.
+        // 상태 색을 덮어써서 "지금 추적이 끊겼다"를 눈에 보이게 한다 —
+        // 이게 없으면 포인터가 멈춘 이유를 알 방법이 없다.
+        val showFaceLost = faceLost && state != ControllerState.CALIBRATING
+        fill.color = if (showFaceLost) Color.GRAY else colorFor(visuals.indicatorColor)
+        fill.alpha = 255
         canvas.drawCircle(cx - dp(40f), cy, dp(8f), fill)
-        val label = visuals.label
+
+        val label = if (showFaceLost) "얼굴 인식 안 됨" else visuals.label
         if (label != null) {
             canvas.drawText(label, cx - dp(26f), cy + dp(5f), text)
         }

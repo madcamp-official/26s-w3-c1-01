@@ -40,6 +40,15 @@ object ControllerPipeline {
     /** 서비스의 lifecycleScope. 서비스가 죽으면 여기 붙은 작업도 같이 취소된다. */
     private var scope: CoroutineScope? = null
 
+    /**
+     * 서비스가 아직 안 떠 있을 때 들어온 캘리브레이션 요청.
+     *
+     * `startForegroundService()`는 비동기라 [start]가 아직 안 돌았을 수 있다.
+     * 이걸 안 두면 첫 실행에서 [runCalibration]이 조용히 무시되고, 상태가
+     * CALIBRATING에 머물러 **모든 음성 명령이 폐기된다.**
+     */
+    private var calibrationPending = false
+
     private val _calibrating = MutableStateFlow(false)
 
     /** 캘리브레이션 진행 여부. Activity가 안내 문구를 바꾸는 데 쓴다. */
@@ -75,6 +84,11 @@ object ControllerPipeline {
 
         wireOverlay(service, c, d)
         Log.i(TAG, "파이프라인 시작 (서비스 수명)")
+
+        if (calibrationPending) {
+            calibrationPending = false
+            runCalibration()
+        }
     }
 
     private fun wireOverlay(
@@ -101,6 +115,27 @@ object ControllerPipeline {
         service.lifecycleScope.launch {
             c.calibrationController.uiState.collect { OverlayBus.publishCalibration(it) }
         }
+
+        // 명령이 "인식은 됐는데 아무 일도 안 일어나는" 상황의 원인을 보이게 만든다.
+        // D가 이 두 스트림을 노출해 둔 이유가 이건데 통합 때 안 붙여서,
+        // 게이트에서 막힌 건지 C에서 실패한 건지 구분할 방법이 없었다.
+        service.lifecycleScope.launch {
+            orchestrator.rejections.collect { reason ->
+                Log.w(TAG, "명령 폐기 — $reason (현재 상태: ${orchestrator.state.value})")
+            }
+        }
+        service.lifecycleScope.launch {
+            orchestrator.executionResults.collect { r ->
+                if (r.success) {
+                    Log.i(TAG, "실행 성공 — ${r.commandId} @ (${r.x}, ${r.y})")
+                } else {
+                    Log.e(TAG, "실행 실패 — ${r.commandId}: ${r.errorReason}")
+                }
+            }
+        }
+        service.lifecycleScope.launch {
+            orchestrator.notices.collect { Log.i(TAG, "안내 — $it") }
+        }
     }
 
     /**
@@ -108,8 +143,14 @@ object ControllerPipeline {
      * 두 수집 루프가 같은 좌표 스트림을 나눠 가지면 양쪽 다 표본이 모자라 실패한다.
      */
     fun runCalibration() {
-        val c = container ?: return
-        val s = scope ?: return
+        val c = container
+        val s = scope
+        if (c == null || s == null) {
+            // 서비스가 아직 안 떴다. 떴을 때 이어서 실행한다.
+            calibrationPending = true
+            Log.i(TAG, "서비스 기동 대기 — 캘리브레이션 예약")
+            return
+        }
         calibrationJob?.cancel()
         calibrationJob = s.launch {
             _calibrating.value = true
