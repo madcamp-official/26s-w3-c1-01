@@ -48,3 +48,8 @@ Thumbs.db
 # 채워야 할 항목이 뭔지는 공유해야 한다. 값이 아니라 목록이라 안전하다.
 .env*
 !.env.example
+
+# 서명된 릴리스 산출물. Android Studio의 Generate Signed APK가 여기에 만든다.
+# APK 자체는 위의 *.apk가 잡지만 baselineProfiles/*.dm과 output-metadata.json은
+# 안 잡혀서 실제로 한 번 커밋됐다. 빌드하면 다시 생기는 파일이라 저장소에 둘 이유가 없다.
+/app/release/
