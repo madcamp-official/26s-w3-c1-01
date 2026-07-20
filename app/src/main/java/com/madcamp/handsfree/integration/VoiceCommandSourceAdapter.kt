@@ -59,6 +59,10 @@ class VoiceCommandSourceAdapter(
     }
 
     override fun onVoiceCommand(event: BVoiceCommandEvent) {
+        // 성공 경로에 로그가 없으면 "음성이 안 잡힌 것"과 "잡혔는데 D가 못 받은 것"을
+        // 구분할 수 없다. 명령 하나당 한 줄이라 양도 문제되지 않는다.
+        Log.i(TAG, "발화 인식 — \"${event.rawText}\" → ${event.commandId} (신뢰도 ${event.confidence})")
+
         val commandId = runCatching { CommandId.valueOf(event.commandId) }.getOrNull()
         if (commandId == null) {
             // B의 사전과 D의 enum이 어긋난 경우. 조용히 삼키면 "명령이 가끔 안 먹는다"로
@@ -82,7 +86,9 @@ class VoiceCommandSourceAdapter(
     }
 
     override fun onUnrecognizedSpeech(rawText: String) {
-        Log.d(TAG, "사전에 없는 발화: $rawText")
+        // 이게 찍히면 마이크와 STT는 정상이고 사전 매칭만 실패한 것이다 —
+        // "음성 인식이 안 된다"와 완전히 다른 상황이라 구분이 중요하다
+        Log.i(TAG, "발화는 들렸으나 사전에 없음 — \"$rawText\"")
     }
 
     private companion object {

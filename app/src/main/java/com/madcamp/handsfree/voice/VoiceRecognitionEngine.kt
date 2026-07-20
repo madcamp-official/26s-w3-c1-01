@@ -141,6 +141,9 @@ class VoiceRecognitionEngine(
     private fun handleError(error: Int) {
         if (useOffline && error in HARD_ERRORS) {
             consecutiveHardErrors++
+            // 폴백 전에도 남긴다. 임계값에 도달해야만 찍으면 "인식이 아예 안 되는데
+            // 로그도 없는" 구간이 생겨서 원인을 못 찾는다.
+            Log.w(TAG, "인식 실패 코드 $error (오프라인 모드, ${consecutiveHardErrors}회째)")
             if (consecutiveHardErrors >= OFFLINE_FALLBACK_THRESHOLD) {
                 useOffline = false
                 // 한글은 Kotlin에서 식별자로 인정돼서 $변수 뒤에 바로 붙이면
@@ -167,7 +170,9 @@ class VoiceRecognitionEngine(
     companion object {
         const val DEFAULT_CONFIDENCE_THRESHOLD = 0.6f
         private const val RESTART_DELAY_MS = 300L
-        private const val TAG = "VoiceEngine[PartB]"
+        // 대괄호를 쓰면 안 된다 — Logcat 필터에서 정규식 메타문자로 해석돼
+        // tag:VoiceEngine[PartB]로 걸면 아무것도 안 잡힌다
+        private const val TAG = "VoiceEngine"
 
         /** 이만큼 연속 실패하면 온라인으로 되돌린다 */
         private const val OFFLINE_FALLBACK_THRESHOLD = 3
