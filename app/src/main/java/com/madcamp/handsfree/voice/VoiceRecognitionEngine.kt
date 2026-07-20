@@ -10,6 +10,7 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.util.Log
 import androidx.core.content.ContextCompat
 
 /**
@@ -25,6 +26,22 @@ class VoiceRecognitionEngine(
     private var speechRecognizer: SpeechRecognizer? = null
     private var isListening = false
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * 온디바이스 인식 사용 여부.
+     *
+     * 기본은 오프라인이다. NFR이 "온디바이스·오프라인"을 요구하고(음성 원본을 서버로
+     * 보내지 않는다), 네트워크 왕복이 사라지면 반응도 빨라진다.
+     *
+     * **다만 기기에 한국어 오프라인 모델이 없으면 인식이 통째로 실패한다.**
+     * 모든 사용자 기기에 모델이 있다고 가정할 수 없어서 실패가 반복되면 온라인으로
+     * 되돌린다. 되돌아간 뒤에는 그 세션 동안 유지한다 — 매번 오프라인을 재시도하면
+     * 실패-폴백을 반복하며 지연만 늘어난다.
+     */
+    private var useOffline = true
+
+    /** 오프라인 상태에서 연속으로 난 하드 에러 수. 인식 성공 시 0으로 돌아간다. */
+    private var consecutiveHardErrors = 0
 
     fun start() {
         if (isListening) return
@@ -42,6 +59,9 @@ class VoiceRecognitionEngine(
         }
 
         isListening = true
+        useOffline = true
+        consecutiveHardErrors = 0
+        Log.i(TAG, "인식 시작 — 오프라인 우선")
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
             setRecognitionListener(recognitionListener)
         }
@@ -63,6 +83,7 @@ class VoiceRecognitionEngine(
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, useOffline)
         }
         speechRecognizer?.startListening(intent)
     }
@@ -77,6 +98,9 @@ class VoiceRecognitionEngine(
         val candidates = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
         val confidenceScores = results.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)
         val rawText = candidates?.firstOrNull()?.trim()
+
+        // 결과가 돌아왔다 = 현재 모드가 동작한다. 폴백 카운터를 되돌린다
+        consecutiveHardErrors = 0
 
         if (rawText.isNullOrEmpty()) {
             scheduleRestart()
@@ -107,9 +131,27 @@ class VoiceRecognitionEngine(
         scheduleRestart()
     }
 
+    /**
+     * 오프라인 모델이 없을 때 나는 에러를 세다가 온라인으로 되돌린다.
+     *
+     * **ERROR_SPEECH_TIMEOUT과 ERROR_NO_MATCH는 세지 않는다.** 연속 청취라
+     * 아무도 말하지 않는 동안 이 둘이 계속 나는데, 이건 "인식기는 멀쩡한데 들은 게
+     * 없다"는 뜻이다. 여기까지 세면 조용히 있기만 해도 온라인으로 넘어가 버린다.
+     */
+    private fun handleError(error: Int) {
+        if (useOffline && error in HARD_ERRORS) {
+            consecutiveHardErrors++
+            if (consecutiveHardErrors >= OFFLINE_FALLBACK_THRESHOLD) {
+                useOffline = false
+                Log.w(TAG, "오프라인 인식 실패($consecutiveHardErrors회) — 온라인으로 전환한다. 기기에 한국어 오프라인 모델이 없는 것으로 보인다")
+            }
+        }
+        scheduleRestart()
+    }
+
     private val recognitionListener = object : RecognitionListener {
         override fun onResults(results: Bundle) = handleResults(results)
-        override fun onError(error: Int) = scheduleRestart()
+        override fun onError(error: Int) = handleError(error)
 
         override fun onReadyForSpeech(params: Bundle?) {}
         override fun onBeginningOfSpeech() {}
@@ -123,5 +165,22 @@ class VoiceRecognitionEngine(
     companion object {
         const val DEFAULT_CONFIDENCE_THRESHOLD = 0.6f
         private const val RESTART_DELAY_MS = 300L
+        private const val TAG = "VoiceEngine[PartB]"
+
+        /** 이만큼 연속 실패하면 온라인으로 되돌린다 */
+        private const val OFFLINE_FALLBACK_THRESHOLD = 3
+
+        /**
+         * "오프라인 모델이 없다"로 해석할 에러들.
+         *
+         * 오프라인 모드인데 네트워크 에러가 난다는 건 인식기가 온디바이스로 처리하지
+         * 못하고 서버로 가려다 실패했다는 뜻이라 여기 포함한다.
+         */
+        private val HARD_ERRORS = setOf(
+            SpeechRecognizer.ERROR_NETWORK,
+            SpeechRecognizer.ERROR_NETWORK_TIMEOUT,
+            SpeechRecognizer.ERROR_SERVER,
+            SpeechRecognizer.ERROR_CLIENT,
+        )
     }
 }
