@@ -19,7 +19,10 @@ data class TelemetryEvent(
     val eventId: String = UUID.randomUUID().toString(),
     val eventName: String,
     val timestamp: Long = System.currentTimeMillis(),
+    /** 앱 실행 단위. 한 번의 사용 흐름을 묶는 데 쓴다 */
     val sessionId: String,
+    /** 설치 단위. 고유 사용자 수(telemetry_users) 집계의 기준이다 */
+    val installId: String,
     val deviceModel: String = Build.MODEL ?: "unknown",
     val androidVersion: String = Build.VERSION.RELEASE ?: "unknown",
     val appVersion: String,
@@ -34,6 +37,7 @@ data class TelemetryEvent(
             .put("eventName", eventName)
             .put("timestamp", timestamp)
             .put("sessionId", sessionId)
+            .put("installId", installId)
             .put("deviceModel", deviceModel)
             .put("androidVersion", androidVersion)
             .put("appVersion", appVersion)
@@ -54,6 +58,9 @@ data class TelemetryEvent(
                 eventName = json.getString("eventName"),
                 timestamp = json.getLong("timestamp"),
                 sessionId = json.getString("sessionId"),
+                // 이 필드가 생기기 전에 큐에 쌓인 이벤트가 남아 있을 수 있다.
+                // getString으로 읽으면 그것들이 통째로 버려진다
+                installId = json.optString("installId"),
                 deviceModel = json.getString("deviceModel"),
                 androidVersion = json.getString("androidVersion"),
                 appVersion = json.getString("appVersion"),

@@ -38,6 +38,27 @@ service cloud.firestore {
       allow read, delete: if false;
     }
 
+    // 고유 사용자 집계. **여기만 클라이언트 읽기를 연다.**
+    // upsertUsersAndOverview()가 transaction.get()으로 "이 설치가 처음인가"를
+    // 확인해야 totalUserCount를 한 번만 올릴 수 있다. 읽기를 전부 막으면
+    // 트랜잭션이 실패해서 업로드 전체가 죽는다.
+    //
+    // 대신 get(단건)만 열고 list(질의·열거)는 막는다. 문서 ID가 installId(UUID)라서
+    // **자기 UUID를 이미 아는 클라이언트만 자기 문서를 읽을 수 있고**, 남의 것을
+    // 훑을 수는 없다. 이 구분이 없으면 전체 사용자 목록이 그대로 노출된다.
+    match /telemetry_users/{userId} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if true;
+      allow delete: if false;
+    }
+
+    // 전체 누계 카운터 하나. increment만 하므로 읽기는 필요 없다
+    match /telemetry_overview/{docId} {
+      allow create, update: if true;
+      allow read, delete: if false;
+    }
+
     // 위에 없는 경로는 전부 차단. 새 컬렉션을 추가하면 여기 규칙도 같이 추가해야 한다
     match /{document=**} {
       allow read, write: if false;

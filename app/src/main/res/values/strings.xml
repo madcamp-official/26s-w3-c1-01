@@ -19,8 +19,8 @@
     <string name="status_need_overlay">먼저 2번에서 오버레이 권한을 허용해 주세요.</string>
 
     <string name="telemetry_title">진단 데이터 전송</string>
-    <string name="telemetry_consent">익명 진단 데이터 전송에 동의합니다.</string>
-    <string name="telemetry_description">수집 항목: 앱 실행, 캘리브레이션 결과, 명령 성공/실패, 성능 지표, 오류, 사용자가 직접 입력한 피드백</string>
+    <string name="telemetry_consent">진단 데이터 전송에 동의합니다.</string>
+    <string name="telemetry_description">수집 항목: 앱 실행, 캘리브레이션 결과, 명령 성공/실패, 성능 지표, 오류, 사용자가 직접 입력한 피드백. 사용자 수를 세기 위해 설치마다 무작위 식별자를 하나 만들어 함께 보냅니다(앱을 삭제하면 사라집니다).</string>
     <string name="telemetry_not_collected">수집하지 않음: 카메라 영상, 얼굴 이미지, 음성 녹음, 화면 내용, 이름/전화번호 같은 개인정보</string>
     <string name="feedback_hint">불편했던 점을 적어 주세요.</string>
     <string name="feedback_situation_hint">명령 인식이 안 된 상황을 적어 주세요.</string>

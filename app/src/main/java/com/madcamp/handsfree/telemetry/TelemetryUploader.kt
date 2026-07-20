@@ -91,7 +91,9 @@ class FirebaseTelemetryUploader(
     ) {
         val users = firestore.collection("telemetry_users")
         val overview = firestore.collection("telemetry_overview").document("global")
-        val groupedByUser = events.groupBy { it.sessionId }
+        // 사용자 집계는 installId(설치 단위)로 묶는다. sessionId는 앱 실행마다
+        // 새로 생기므로 그걸로 세면 켤 때마다 신규 사용자가 되어 totalUserCount가 부푼다
+        val groupedByUser = events.groupBy { it.installId }.filterKeys { it.isNotBlank() }
 
         firestore.runTransaction { transaction ->
             groupedByUser.forEach { (userId, userEvents) ->
@@ -136,7 +138,7 @@ class FirebaseTelemetryUploader(
 
     private fun TelemetryEvent.toNewUserMap(lastEvent: TelemetryEvent): Map<String, Any> {
         return mapOf(
-            "userId" to sessionId,
+            "userId" to installId,
             "firstSeenAt" to timestamp,
             "firstSeenDate" to localDate(),
             "lastSeenAt" to lastEvent.timestamp,
@@ -167,6 +169,7 @@ class FirebaseTelemetryUploader(
             "timestamp" to timestamp,
             "eventDate" to localDate(),
             "sessionId" to sessionId,
+            "installId" to installId,
             "deviceModel" to deviceModel,
             "androidVersion" to androidVersion,
             "appVersion" to appVersion,

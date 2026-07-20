@@ -12,31 +12,43 @@ class TelemetrySettings(context: Context) {
             prefs.edit().putBoolean(KEY_DIAGNOSTICS_ENABLED, value).apply()
         }
 
-    init {
-        // 예전 버전이 SharedPreferences에 영구 저장하던 식별자를 지운다.
-        // 업데이트한 기존 사용자에게 옛날 ID가 남아 있으면 이 변경이 의미가 없다.
-        if (prefs.contains(KEY_LEGACY_SESSION_ID)) {
-            prefs.edit().remove(KEY_LEGACY_SESSION_ID).apply()
+    /**
+     * 설치 단위로 고정되는 식별자. 앱을 지우고 다시 깔면 새로 생긴다.
+     *
+     * **원래 이게 `sessionId`라는 이름으로 있었다.** 이름과 실제가 달랐던 것이지
+     * 존재 자체가 문제는 아니다 — 옵션 2가 요구하는 "공개 경로로 유입된 실제 사용자"를
+     * 세려면 설치를 구분할 방법이 반드시 필요하고, `telemetry_users`의
+     * `totalUserCount`가 이 값에 걸려 있다.
+     *
+     * 다만 이건 익명이 아니라 가명(pseudonymous)이다. 기기 모델·Android 버전과 묶이면
+     * 한 사람의 전 사용 이력이 하나로 연결된다. **그래서 화면 고지 문구를 "익명"에서
+     * 정확한 표현으로 바꿨다.** 지표를 포기하는 대신 사실대로 말하는 쪽을 택한 것이다.
+     */
+    val installId: String
+        get() {
+            val existing = prefs.getString(KEY_INSTALL_ID, null)
+            if (existing != null) return existing
+
+            val created = UUID.randomUUID().toString()
+            prefs.edit().putString(KEY_INSTALL_ID, created).apply()
+            return created
         }
-    }
 
     /**
-     * 프로세스가 살아 있는 동안만 유지되는 식별자. **저장하지 않는다.**
+     * 앱 실행(프로세스) 단위 식별자. **저장하지 않는다.**
      *
-     * 원래는 SharedPreferences에 한 번 만들고 앱을 지울 때까지 그대로 썼는데,
-     * 그건 세션 ID가 아니라 영구 설치 식별자다. 기기 모델·Android 버전과 묶이면
-     * 한 사람의 전 사용 이력이 하나로 연결돼서, 앱이 화면에서 약속한
-     * "**익명** 진단 데이터"가 성립하지 않는다.
-     *
-     * 앱 실행 단위로 끊으면 이름 그대로의 의미가 되고, 한 번의 사용 흐름
-     * (실행 → 보정 → 명령들)을 묶어 보는 분석 목적에도 이쪽이 오히려 맞다.
+     * 한 번의 사용 흐름(실행 → 보정 → 명령들)을 묶어 보는 용도다. 설치 식별자와
+     * 분리해 둬야 "이 실행에서 명령이 몇 번 실패했나" 같은 걸 볼 때
+     * 사용자 전체 이력을 끌어오지 않아도 된다.
      */
     val sessionId: String get() = processSessionId
 
     companion object {
         private const val PREFS = "telemetry_settings"
         private const val KEY_DIAGNOSTICS_ENABLED = "diagnostics_enabled"
-        private const val KEY_LEGACY_SESSION_ID = "session_id"
+        // 옛 이름 그대로 둔다. 키를 바꾸면 기존 설치가 전부 신규 사용자로 잡혀서
+        // totalUserCount가 한 번 부풀어 오른다
+        private const val KEY_INSTALL_ID = "session_id"
 
         private val processSessionId: String = UUID.randomUUID().toString()
     }

@@ -95,6 +95,7 @@ class DefaultTelemetryLogger(
             TelemetryEvent(
                 eventName = name.wireName,
                 sessionId = settings.sessionId,
+                installId = settings.installId,
                 appVersion = appVersion,
                 payload = payload.toMap().filterValues { it.isNotBlank() },
             )
