@@ -59,6 +59,7 @@ class FaceTracker(
     val errors: SharedFlow<TrackerError> = _errors.asSharedFlow()
 
     private val mapper = PointerMapper()
+    private val stabilizer = PointerStabilizer()
     private var landmarker: FaceLandmarker? = null
     private var executor: ExecutorService? = null
 
@@ -82,7 +83,10 @@ class FaceTracker(
     var lastLandmarkCount: Int = 0
         private set
 
-    fun updateProfile(profile: CalibrationProfile) = mapper.updateProfile(profile)
+    fun updateProfile(profile: CalibrationProfile) {
+        mapper.updateProfile(profile)
+        stabilizer.reset()
+    }
 
     /** 디버그 화면에서 시선 보조 세기를 바꿔 보기 위한 통로. 값이 정해지면 없앤다 */
     var gazeAssistWeight: Float
@@ -230,7 +234,7 @@ class FaceTracker(
 
     private fun emit(raw: RawFaceOrientation) {
         _rawOrientations.tryEmit(raw)
-        _pointerFrames.tryEmit(mapper.map(raw, lastLowLight))
+        _pointerFrames.tryEmit(stabilizer.stabilize(mapper.map(raw, lastLowLight)))
     }
 
     private fun emitError(type: TrackerError.Type) {
