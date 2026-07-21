@@ -113,9 +113,6 @@ class OverlayView(context: Context) : View(context) {
             drawPointer(canvas, w, h)
         }
 
-        // LOCKED은 화면을 비운다 — 상태 인디케이터/라벨/얼굴미검출 표시를 전부 끈다.
-        // 단 아래 수동 해제 버튼은 showManualUnlock으로 계속 그려진다(갇힘 방지).
-        if (visuals.showStatusHud) drawIndicator(canvas, w)
         drawClickRipple(canvas, w, h)
 
         if (visuals.showManualUnlock) drawUnlockButton(canvas, w, h) else unlockRect.setEmpty()
@@ -184,24 +181,6 @@ class OverlayView(context: Context) : View(context) {
         val filledRight = margin + (w - 2 * margin) * ui.progress
         canvas.drawRoundRect(margin, barTop, filledRight, barBottom, dp(5f), dp(5f), fill)
         canvas.drawText("보정 ${(ui.progress * 100).toInt()}%", margin, barTop - dp(8f), text)
-    }
-
-    private fun drawIndicator(canvas: Canvas, w: Float) {
-        val cx = w / 2f
-        val cy = dp(28f)
-
-        // 얼굴 미검출은 상태 머신과 무관한 신호라 OverlayVisuals가 모른다.
-        // 상태 색을 덮어써서 "지금 추적이 끊겼다"를 눈에 보이게 한다 —
-        // 이게 없으면 포인터가 멈춘 이유를 알 방법이 없다.
-        val showFaceLost = faceLost && state != ControllerState.CALIBRATING
-        fill.color = if (showFaceLost) Color.GRAY else colorFor(visuals.indicatorColor)
-        fill.alpha = 255
-        canvas.drawCircle(cx - dp(40f), cy, dp(8f), fill)
-
-        val label = if (showFaceLost) "얼굴 인식 안 됨" else visuals.label
-        if (label != null) {
-            canvas.drawText(label, cx - dp(26f), cy + dp(5f), text)
-        }
     }
 
     private fun drawClickRipple(canvas: Canvas, w: Float, h: Float) {
