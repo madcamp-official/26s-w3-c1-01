@@ -11,7 +11,8 @@ data class CommandMatch(val commandId: String, val matchedText: String)
 object CommandDictionary {
 
     val definitions: List<CommandDefinition> = listOf(
-        CommandDefinition("TOUCH", listOf("탭", "터치", "클릭")),
+        // "탭"은 한 음절이라 STT 인식이 불안정해 뺐다(터치/클릭으로 충분). 짧은 발화는 오인식·저신뢰도로 걸린다.
+        CommandDefinition("TOUCH", listOf("터치", "클릭")),
         CommandDefinition("BACK", listOf("취소", "뒤로")),
         CommandDefinition("SCROLL_DOWN", listOf("아래로", "내려", "아래")),
         CommandDefinition("SCROLL_UP", listOf("위로", "올려", "위")),

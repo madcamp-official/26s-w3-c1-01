@@ -333,7 +333,7 @@
                     <!-- 탭 · 이동 -->
                     <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_tap" />
                     <LinearLayout style="@style/CommandRow">
-                        <TextView style="@style/CommandSynonyms" android:text="&quot;탭&quot; · &quot;터치&quot; · &quot;클릭&quot;" />
+                        <TextView style="@style/CommandSynonyms" android:text="&quot;터치&quot; · &quot;클릭&quot;" />
                         <TextView style="@style/CommandAction" android:text="현재 위치 탭" />
                     </LinearLayout>
                     <LinearLayout style="@style/CommandRow">
@@ -403,6 +403,90 @@
                         android:layout_marginStart="10dp"
                         android:layout_weight="1"
                         android:text="@string/usage_guide_notification_note"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:background="@drawable/bg_circle_fill"
+                        android:gravity="center"
+                        android:text="i"
+                        android:textColor="@color/card_bg"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:text="@string/usage_guide_tip_mount"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:background="@drawable/bg_circle_fill"
+                        android:gravity="center"
+                        android:text="i"
+                        android:textColor="@color/card_bg"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:text="@string/usage_guide_tip_head"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:background="@drawable/bg_circle_fill"
+                        android:gravity="center"
+                        android:text="i"
+                        android:textColor="@color/card_bg"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:text="@string/usage_guide_tip_voice_gray"
                         android:textColor="@color/text_secondary"
                         android:textSize="13sp" />
                 </LinearLayout>
