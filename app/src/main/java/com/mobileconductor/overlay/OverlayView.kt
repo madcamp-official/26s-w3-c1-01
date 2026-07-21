@@ -5,18 +5,19 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.RectF
 import android.graphics.Typeface
 import android.util.TypedValue
-import android.view.MotionEvent
 import android.view.View
 import com.mobileconductor.core.model.ControllerState
 import com.mobileconductor.core.model.PointerFrame
 import com.mobileconductor.orchestrator.calibration.CalibrationUiState
 
 /**
- * 오버레이 렌더러 (FR-008). Canvas로 포인터/상태 인디케이터/클릭 피드백/캘리브레이션 기준점/
- * 수동 해제 버튼을 그린다. 상태별 시각 규칙은 [OverlayVisuals]에서 받아 사용한다.
+ * 오버레이 렌더러 (FR-008). Canvas로 포인터/클릭 피드백/캘리브레이션 기준점을 그린다.
+ * 상태별 시각 규칙은 [OverlayVisuals]에서 받아 사용한다.
+ *
+ * **터치를 받지 않는다** — 창이 항상 FLAG_NOT_TOUCHABLE이라 순수 그리기 표면이다.
+ * 수동 해제 버튼은 [OverlayService]가 별도 창으로 띄운다(잠금 중 직접 조작을 막지 않기 위해).
  *
  * 데이터는 [OverlayService]가 setter로 밀어넣고, 값이 바뀌면 invalidate한다.
  */
@@ -47,7 +48,6 @@ class OverlayView(context: Context) : View(context) {
     // 입력 불가(얼굴 미검출 등) 시 포인터 링 색. 상단 인디케이터 회색과 같은 톤.
     private val notReadyGray = Color.parseColor("#9E9E9E")
 
-    private val unlockRect = RectF()
     private var clickX = 0f
     private var clickY = 0f
     private var clickProgress = 0f
@@ -114,8 +114,6 @@ class OverlayView(context: Context) : View(context) {
         }
 
         drawClickRipple(canvas, w, h)
-
-        if (visuals.showManualUnlock) drawUnlockButton(canvas, w, h) else unlockRect.setEmpty()
     }
 
     private fun drawPointer(canvas: Canvas, w: Float, h: Float) {
@@ -189,29 +187,6 @@ class OverlayView(context: Context) : View(context) {
 
         stroke.strokeWidth = dp(3f)
         stroke.alpha = 255
-    }
-
-    private fun drawUnlockButton(canvas: Canvas, w: Float, h: Float) {
-        val bw = dp(180f)
-        val bh = dp(56f)
-        val left = (w - bw) / 2f
-        val top = h - bh - dp(40f)
-        unlockRect.set(left, top, left + bw, top + bh)
-        fill.color = Color.parseColor("#455A64"); fill.alpha = 235
-        canvas.drawRoundRect(unlockRect, dp(12f), dp(12f), fill)
-        canvas.drawText("잠금 해제", unlockRect.left + dp(48f), unlockRect.centerY() + dp(5f), text)
-    }
-
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        // 창은 LOCKED에서만 터치 가능(서비스가 플래그 토글). 버튼 영역 탭 시 해제 액션.
-        if (event.action == MotionEvent.ACTION_UP &&
-            visuals.showManualUnlock &&
-            unlockRect.contains(event.x, event.y)
-        ) {
-            OverlayBus.onManualUnlock?.invoke()
-            return true
-        }
-        return false
     }
 
     private fun colorFor(c: IndicatorColor): Int = when (c) {

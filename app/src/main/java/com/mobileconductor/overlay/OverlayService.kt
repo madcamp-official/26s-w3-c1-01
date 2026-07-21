@@ -6,12 +6,18 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import android.view.Gravity
+import android.view.View
 import android.view.WindowManager
+import android.widget.TextView
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.madcamp.handsfree.integration.ControllerPipeline
@@ -24,8 +30,11 @@ import kotlinx.coroutines.launch
  * [OverlayView]를 WindowManager의 시스템 오버레이(TYPE_APPLICATION_OVERLAY)로 띄우고,
  * [OverlayBus]를 구독해 상태/포인터/캘리브레이션/클릭 피드백을 렌더에 반영한다.
  *
- * 창은 기본적으로 터치 통과(FLAG_NOT_TOUCHABLE)이며, LOCKED 상태에서만 터치를 받아
- * 수동 잠금 해제 버튼이 동작하도록 플래그를 토글한다.
+ * **전체 오버레이 창은 항상 터치 통과(FLAG_NOT_TOUCHABLE)다** — 잠금 중에도 사용자가 아래 앱을
+ * 손으로 자유롭게 조작할 수 있어야 하기 때문. 예전엔 LOCKED에서 이 창을 통째로 터치 가능하게
+ * 만들어 해제 버튼을 받았는데, 그러면 창이 모든 터치를 삼켜 직접 조작이 막혔다. 그래서 해제
+ * 버튼만 [unlockView]라는 별도의 작은 터치 창으로 분리했다(FLAG_NOT_TOUCH_MODAL로 버튼 밖
+ * 터치는 뒤로 통과). 이 버튼 창은 LOCKED에서만 붙인다.
  */
 class OverlayService : LifecycleService() {
 
@@ -34,6 +43,11 @@ class OverlayService : LifecycleService() {
     private lateinit var layoutParams: WindowManager.LayoutParams
     private var added = false
 
+    /** LOCKED에서만 붙는 "잠금 해제" 버튼 전용 창. 전체 오버레이와 분리해 나머지 터치는 통과시킨다. */
+    private lateinit var unlockView: View
+    private lateinit var unlockParams: WindowManager.LayoutParams
+    private var unlockAdded = false
+
 
     override fun onCreate() {
         super.onCreate()
@@ -41,7 +55,9 @@ class OverlayService : LifecycleService() {
 
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         overlayView = OverlayView(this)
-        layoutParams = buildLayoutParams(touchable = false)
+        layoutParams = buildOverlayParams()
+        unlockView = buildUnlockButton()
+        unlockParams = buildUnlockParams()
 
         if (canDrawOverlays()) {
             windowManager.addView(overlayView, layoutParams)
@@ -60,7 +76,7 @@ class OverlayService : LifecycleService() {
         lifecycleScope.launch {
             OverlayBus.state.collect { state ->
                 overlayView.setState(state)
-                updateTouchability(state)
+                updateUnlockButton(state)
             }
         }
         lifecycleScope.launch {
@@ -77,35 +93,82 @@ class OverlayService : LifecycleService() {
         }
     }
 
-    /** LOCKED에서만 창을 터치 가능하게 하여 해제 버튼이 이벤트를 받도록 한다. */
-    private fun updateTouchability(state: ControllerState) {
-        if (!added) return
-        val touchable = state == ControllerState.LOCKED
-        val newParams = buildLayoutParams(touchable)
-        layoutParams = newParams
-        windowManager.updateViewLayout(overlayView, layoutParams)
+    /**
+     * LOCKED에서만 "잠금 해제" 버튼 창을 붙이고, 벗어나면 뗀다.
+     * 상태별 노출 여부는 [OverlayVisuals]의 showManualUnlock을 SSOT로 따른다.
+     */
+    private fun updateUnlockButton(state: ControllerState) {
+        if (!canDrawOverlays()) return
+        val shouldShow = OverlayVisuals.forState(state).showManualUnlock
+        if (shouldShow && !unlockAdded) {
+            windowManager.addView(unlockView, unlockParams)
+            unlockAdded = true
+        } else if (!shouldShow && unlockAdded) {
+            windowManager.removeView(unlockView)
+            unlockAdded = false
+        }
     }
 
-    private fun buildLayoutParams(touchable: Boolean): WindowManager.LayoutParams {
-        var flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-        if (!touchable) flags = flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    private fun overlayType(): Int =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
             @Suppress("DEPRECATION")
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
+    /** 전체 오버레이 창. 항상 터치 통과 — 잠금 중에도 아래 앱을 손으로 조작할 수 있어야 한다. */
+    private fun buildOverlayParams(): WindowManager.LayoutParams {
+        val flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         return WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
-            type,
+            overlayType(),
             flags,
             PixelFormat.TRANSLUCENT,
         )
     }
+
+    /**
+     * 해제 버튼 창. 버튼 크기(WRAP_CONTENT)만큼만 차지하고 터치를 받는다.
+     * FLAG_NOT_TOUCH_MODAL로 버튼 밖 터치는 뒤 창(=통과되는 전체 오버레이)으로 넘겨 앱에 닿게 한다.
+     */
+    private fun buildUnlockParams(): WindowManager.LayoutParams {
+        val flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+        return WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            overlayType(),
+            flags,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            y = dp(40)
+        }
+    }
+
+    /** "잠금 해제" 버튼(둥근 어두운 배경 + 흰 글자, 가운데 정렬). 탭하면 해제 액션을 부른다. */
+    private fun buildUnlockButton(): View =
+        TextView(this).apply {
+            text = "잠금 해제"
+            setTextColor(Color.WHITE)
+            textSize = 15f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                cornerRadius = 12f * resources.displayMetrics.density
+                setColor(Color.argb(235, 0x45, 0x5A, 0x64))
+            }
+            setPadding(dp(44), dp(16), dp(44), dp(16))
+            isClickable = true
+            isFocusable = false
+            setOnClickListener { OverlayBus.onManualUnlock?.invoke() }
+        }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun canDrawOverlays(): Boolean = Settings.canDrawOverlays(this)
 
@@ -176,6 +239,10 @@ class OverlayService : LifecycleService() {
             Log.w(TAG, "서비스 종료 — 요청하지 않았는데 죽었다(시스템 또는 제조사 배터리 정책)")
         }
         ControllerPipeline.stop()
+        if (unlockAdded) {
+            windowManager.removeView(unlockView)
+            unlockAdded = false
+        }
         if (added) {
             windowManager.removeView(overlayView)
             added = false
