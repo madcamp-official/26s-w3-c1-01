@@ -4,11 +4,11 @@ import com.mobileconductor.core.model.ControllerState
 import com.mobileconductor.core.model.ExecutionCommand
 
 /**
- * 게이트키핑 판정 결과 (명세 forD 2절/6절).
+ * 게이트키핑 판정 결과.
  *
  * - [Accept]: 현재 상태에서 유효한 명령. 상태를 [nextState]로 전이하고,
  *   OS 이벤트가 필요한 경우 [execution]을 C에 내려보낸다.
- *   제어 명령(STOP/RESUME/LOCK/UNLOCK)은 상태만 바꾸므로 execution == null.
+ *   제어 명령(LOCK/UNLOCK)은 상태만 바꾸므로 execution == null.
  * - [Reject]: 무효 명령. 폐기하고 [reason]에 따라 안내만 표시한다.
  */
 sealed interface GateDecision {
@@ -26,8 +26,5 @@ enum class RejectReason {
     INVALID_IN_STATE,
 
     /** LOCKED 상태 — "잠금 해제가 필요합니다" (명세 forD 6절). */
-    NEED_UNLOCK,
-
-    /** DRAGGING 상태에서 드래그 무관 명령 — "드래그 중입니다" (명세 FR-003). */
-    DRAG_IN_PROGRESS
+    NEED_UNLOCK
 }

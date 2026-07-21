@@ -39,7 +39,6 @@ class InputExecutionSink(
 
     override suspend fun execute(command: ExecutionCommand) {
         // dispatchGesture는 접근성 서비스의 메인 루퍼에서 호출하는 게 안전하다.
-        // 드래그의 continueStroke는 앞선 stroke와 같은 스레드 순서를 전제로 이어진다.
         withContext(Dispatchers.Main) {
             engine.execute(command) { result ->
                 telemetryLogger.logCommandExecuted(

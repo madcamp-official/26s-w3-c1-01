@@ -3,7 +3,6 @@ package com.mobileconductor.orchestrator
 import com.mobileconductor.core.model.ControllerState
 import com.mobileconductor.orchestrator.calibration.CalibrationConfig
 import com.mobileconductor.orchestrator.calibration.CalibrationController
-import com.mobileconductor.orchestrator.safety.DragWatchdog
 import com.mobileconductor.orchestrator.state.StateHolder
 import kotlinx.coroutines.CoroutineScope
 
@@ -17,14 +16,12 @@ import kotlinx.coroutines.CoroutineScope
  * @param deps A/B/C 경계 의존성 묶음
  * @param scope 코루틴 스코프(수명은 호출자가 관리)
  * @param initialState 시작 상태. 기본 CALIBRATING(캘리브레이션 미완료 시 ACTIVE 차단).
- * @param dragTimeoutMs 드래그 자동 취소 타임아웃
  * @param calibrationConfig 캘리브레이션 튜닝값
  */
 class ConductorContainer(
     deps: ConductorDependencies,
     scope: CoroutineScope,
     initialState: ControllerState = ControllerState.CALIBRATING,
-    dragTimeoutMs: Long = DragWatchdog.DEFAULT_TIMEOUT_MS,
     calibrationConfig: CalibrationConfig = CalibrationConfig(),
 ) {
     private val stateHolder = StateHolder(initialState)
@@ -35,7 +32,6 @@ class ConductorContainer(
         voiceSource = deps.voiceCommandSource,
         executionSink = deps.executionSink,
         scope = scope,
-        dragTimeoutMs = dragTimeoutMs,
     )
 
     val calibrationController = CalibrationController(

@@ -136,25 +136,16 @@ class OverlayView(context: Context) : View(context) {
         //          말해도 안 잡힐 때. 사용자가 "지금은 안 되는구나"를 눈으로 알 수 있게 한다.
         val ready = state == ControllerState.ACTIVE && !faceLost && listening
         val ringColor = if (ready) Color.WHITE else notReadyGray
-        val translucent = visuals.pointerVisibility == PointerVisibility.FIXED_TRANSLUCENT
-        val ringAlpha = if (translucent) 140 else 255
-
         // 흰 링이 흰 배경에서 사라지지 않도록 옅은 어두운 테두리를 먼저 깐다(가림은 최소, 대비는 확보).
         stroke.color = Color.BLACK
-        stroke.alpha = if (translucent) 40 else 70
+        stroke.alpha = 70
         stroke.strokeWidth = dp(5f)
         canvas.drawCircle(cx, cy, radius, stroke)
 
         stroke.color = ringColor
-        stroke.alpha = ringAlpha
+        stroke.alpha = 255
         stroke.strokeWidth = dp(3f)
         canvas.drawCircle(cx, cy, radius, stroke)
-
-        // 드래그 중이면 바깥에 얇은 링을 하나 더 둘러 강조한다.
-        if (visuals.pointerVisibility == PointerVisibility.MOVING_HIGHLIGHT) {
-            stroke.strokeWidth = dp(2f)
-            canvas.drawCircle(cx, cy, radius + dp(5f), stroke)
-        }
 
         // 공유 stroke Paint 상태 복원(클릭 리플 등 다른 그리기와 간섭 방지).
         stroke.strokeWidth = dp(3f)
@@ -166,7 +157,7 @@ class OverlayView(context: Context) : View(context) {
         // 현재 기준점 하이라이트
         val cx = ui.currentPoint.screenX * w
         val cy = ui.currentPoint.screenY * h
-        fill.color = colorFor(IndicatorColor.BLUE); fill.alpha = 255
+        fill.color = colorFor(IndicatorColor.PROGRESS); fill.alpha = 255
         canvas.drawCircle(cx, cy, dp(18f), fill)
         stroke.color = Color.WHITE
         canvas.drawCircle(cx, cy, dp(26f), stroke)
@@ -225,9 +216,7 @@ class OverlayView(context: Context) : View(context) {
 
     private fun colorFor(c: IndicatorColor): Int = when (c) {
         IndicatorColor.GREEN -> Color.parseColor("#4CAF50")
-        IndicatorColor.YELLOW -> Color.parseColor("#FBC02D")
         IndicatorColor.GRAY -> Color.parseColor("#9E9E9E")
-        IndicatorColor.BLUE -> Color.parseColor("#2196F3")
         IndicatorColor.PROGRESS -> Color.parseColor("#4CAF50")
     }
 

@@ -10,9 +10,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.Surface
 import android.view.View
-import android.widget.Button
-import android.widget.CheckBox
-import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.madcamp.handsfree.BuildConfig
 import com.madcamp.handsfree.R
+import com.madcamp.handsfree.databinding.ActivityControllerBinding
 import com.madcamp.handsfree.telemetry.LocalTelemetryQueue
 import com.madcamp.handsfree.telemetry.Telemetry
 import com.madcamp.handsfree.telemetry.TelemetryCrashHandler
@@ -40,19 +38,9 @@ import kotlinx.coroutines.launch
  */
 class ControllerActivity : AppCompatActivity() {
 
-    private lateinit var statusBadge: View
-    private lateinit var statusDot: View
-    private lateinit var statusText: TextView
-    private lateinit var telemetryStatusText: TextView
+    private lateinit var binding: ActivityControllerBinding
     private lateinit var telemetrySettings: TelemetrySettings
     private lateinit var telemetryQueue: LocalTelemetryQueue
-
-    private lateinit var stepAccessibilityRow: View
-    private lateinit var stepAccessibilityNumber: TextView
-    private lateinit var stepOverlayRow: View
-    private lateinit var stepOverlayNumber: TextView
-    private lateinit var stepStartRow: View
-    private lateinit var stepStartNumber: TextView
 
     /** C의 접근성 서비스 컴포넌트. 실제 구현 패키지는 통합 이전 그대로다(OPEN_ISSUES 참고). */
     private val accessibilityServiceComponent by lazy {
@@ -84,60 +72,46 @@ class ControllerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_controller)
+        binding = ActivityControllerBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         TelemetryCrashHandler.install(applicationContext)
         TelemetryUploadWorker.scheduleDailyAt9(applicationContext)
 
         telemetrySettings = TelemetrySettings(applicationContext)
         telemetryQueue = LocalTelemetryQueue(applicationContext)
-        statusBadge = findViewById(R.id.status_badge)
-        statusDot = findViewById(R.id.status_dot)
-        statusText = findViewById(R.id.status_text)
-        telemetryStatusText = findViewById(R.id.telemetry_status_text)
 
-        stepAccessibilityRow = findViewById(R.id.step_accessibility)
-        stepAccessibilityNumber = findViewById(R.id.step_accessibility_number)
-        stepOverlayRow = findViewById(R.id.step_overlay)
-        stepOverlayNumber = findViewById(R.id.step_overlay_number)
-        stepStartRow = findViewById(R.id.step_start)
-        stepStartNumber = findViewById(R.id.step_start_number)
-
-        stepAccessibilityRow.setOnClickListener {
+        binding.stepAccessibility.setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
-        stepOverlayRow.setOnClickListener { requestOverlayPermission() }
-        stepStartRow.setOnClickListener {
+        binding.stepOverlay.setOnClickListener { requestOverlayPermission() }
+        binding.stepStart.setOnClickListener {
             permissions.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
         }
 
         // 사용법 가이드는 진행 상태와 무관하게 언제든 열람 가능해야 한다(구현 지시).
-        val usageGuideToggle = findViewById<View>(R.id.usage_guide_toggle)
-        val usageGuideContent = findViewById<View>(R.id.usage_guide_content)
-        val usageGuideArrow = findViewById<TextView>(R.id.usage_guide_arrow)
-        usageGuideToggle.setOnClickListener {
-            val expanding = usageGuideContent.visibility != View.VISIBLE
-            usageGuideContent.visibility = if (expanding) View.VISIBLE else View.GONE
-            usageGuideArrow.text = if (expanding) "▴" else "▾"
+        binding.usageGuideToggle.setOnClickListener {
+            val expanding = binding.usageGuideContent.visibility != View.VISIBLE
+            binding.usageGuideContent.visibility = if (expanding) View.VISIBLE else View.GONE
+            binding.usageGuideArrow.text = if (expanding) "▴" else "▾"
         }
 
         // 저장된 프로파일을 버리고 처음부터 다시 잡는다.
         // 자세나 거치 위치가 바뀌면 기존 범위가 안 맞는다.
-        findViewById<Button>(R.id.btn_recalibrate).setOnClickListener {
+        binding.btnRecalibrate.setOnClickListener {
             CalibrationStore.clear(this)
             ControllerPipeline.runCalibration()
         }
         // 알림의 정지 버튼과 같은 동작. 서비스가 죽으면 파이프라인도 같이 정리된다.
-        findViewById<Button>(R.id.btn_stop).setOnClickListener {
+        binding.btnStop.setOnClickListener {
             OverlayService.stop(this)
             applyStatus(R.string.status_idle, R.color.status_idle_bg, R.color.status_idle_fg, R.color.status_idle_dot)
             refreshStepStates()
         }
 
         val telemetryLogger = Telemetry.logger(applicationContext)
-        val telemetryConsent = findViewById<CheckBox>(R.id.checkbox_telemetry_consent)
-        telemetryConsent.isChecked = telemetrySettings.diagnosticsEnabled
-        telemetryConsent.setOnCheckedChangeListener { _, isChecked ->
+        binding.checkboxTelemetryConsent.isChecked = telemetrySettings.diagnosticsEnabled
+        binding.checkboxTelemetryConsent.setOnCheckedChangeListener { _, isChecked ->
             telemetrySettings.diagnosticsEnabled = isChecked
             if (isChecked) {
                 telemetryLogger.logAppOpened()
@@ -146,19 +120,17 @@ class ControllerActivity : AppCompatActivity() {
         }
         telemetryLogger.logAppOpened()
 
-        val feedbackMessage = findViewById<EditText>(R.id.feedback_message)
-        val feedbackSituation = findViewById<EditText>(R.id.feedback_situation)
-        findViewById<Button>(R.id.btn_send_feedback).setOnClickListener {
-            val message = feedbackMessage.text.toString().trim()
-            val situation = feedbackSituation.text.toString().trim()
+        binding.btnSendFeedback.setOnClickListener {
+            val message = binding.feedbackMessage.text.toString().trim()
+            val situation = binding.feedbackSituation.text.toString().trim()
             if (message.isBlank() && situation.isBlank()) {
-                telemetryStatusText.setText(R.string.telemetry_feedback_empty)
+                binding.telemetryStatusText.setText(R.string.telemetry_feedback_empty)
                 return@setOnClickListener
             }
             telemetryLogger.logUserFeedback(message, situation)
-            feedbackMessage.text.clear()
-            feedbackSituation.text.clear()
-            telemetryStatusText.text = getString(
+            binding.feedbackMessage.text.clear()
+            binding.feedbackSituation.text.clear()
+            binding.telemetryStatusText.text = getString(
                 R.string.telemetry_feedback_saved,
                 telemetryQueue.count(),
             )
@@ -166,26 +138,24 @@ class ControllerActivity : AppCompatActivity() {
         // 업로드 테스트 버튼은 개발용이다. 낯선 사용자에게 배포하는 화면에
         // "Logcat", "Firebase" 같은 말이 보이면 앱이 미완성으로 읽힌다.
         // 기능을 지우지 않고 숨기기만 하는 이유는 디버그 빌드에서 계속 쓰기 때문이다.
-        val uploadTestButton = findViewById<Button>(R.id.btn_upload_test)
-        val firebaseTestButton = findViewById<Button>(R.id.btn_upload_firebase_test)
         if (BuildConfig.DEBUG) {
-            uploadTestButton.setOnClickListener {
+            binding.btnUploadTest.setOnClickListener {
                 TelemetryUploadWorker.enqueueManualTestUpload(
                     context = applicationContext,
                     useLogcatUploader = true,
                 )
-                telemetryStatusText.setText(R.string.telemetry_upload_test_started)
+                binding.telemetryStatusText.setText(R.string.telemetry_upload_test_started)
             }
-            firebaseTestButton.setOnClickListener {
+            binding.btnUploadFirebaseTest.setOnClickListener {
                 TelemetryUploadWorker.enqueueManualTestUpload(
                     context = applicationContext,
                     useLogcatUploader = false,
                 )
-                telemetryStatusText.setText(R.string.telemetry_firebase_upload_test_started)
+                binding.telemetryStatusText.setText(R.string.telemetry_firebase_upload_test_started)
             }
         } else {
-            uploadTestButton.visibility = View.GONE
-            firebaseTestButton.visibility = View.GONE
+            binding.btnUploadTest.visibility = View.GONE
+            binding.btnUploadFirebaseTest.visibility = View.GONE
         }
         updateTelemetryStatus()
         refreshStepStates()
@@ -225,10 +195,10 @@ class ControllerActivity : AppCompatActivity() {
 
     /** 상태 배지의 텍스트·배경·점 색을 한 번에 맞춘다. */
     private fun applyStatus(labelRes: Int, bgColorRes: Int, fgColorRes: Int, dotColorRes: Int) {
-        statusText.setText(labelRes)
-        statusText.setTextColor(ContextCompat.getColor(this, fgColorRes))
-        statusBadge.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, bgColorRes))
-        statusDot.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, dotColorRes))
+        binding.statusText.setText(labelRes)
+        binding.statusText.setTextColor(ContextCompat.getColor(this, fgColorRes))
+        binding.statusBadge.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, bgColorRes))
+        binding.statusDot.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, dotColorRes))
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
@@ -247,9 +217,9 @@ class ControllerActivity : AppCompatActivity() {
         val overlayDone = Settings.canDrawOverlays(this)
         val startDone = ControllerPipeline.isRunning
 
-        setStepState(stepAccessibilityRow, stepAccessibilityNumber, "1", done = accessibilityDone, locked = false)
-        setStepState(stepOverlayRow, stepOverlayNumber, "2", done = overlayDone, locked = !accessibilityDone)
-        setStepState(stepStartRow, stepStartNumber, "3", done = startDone, locked = !overlayDone)
+        setStepState(binding.stepAccessibility, binding.stepAccessibilityNumber, "1", done = accessibilityDone, locked = false)
+        setStepState(binding.stepOverlay, binding.stepOverlayNumber, "2", done = overlayDone, locked = !accessibilityDone)
+        setStepState(binding.stepStart, binding.stepStartNumber, "3", done = startDone, locked = !overlayDone)
     }
 
     private fun setStepState(row: View, number: TextView, index: String, done: Boolean, locked: Boolean) {
@@ -262,7 +232,7 @@ class ControllerActivity : AppCompatActivity() {
     }
 
     private fun updateTelemetryStatus() {
-        telemetryStatusText.text = if (telemetrySettings.diagnosticsEnabled) {
+        binding.telemetryStatusText.text = if (telemetrySettings.diagnosticsEnabled) {
             getString(R.string.telemetry_status_enabled, telemetryQueue.count())
         } else {
             getString(R.string.telemetry_status_disabled)

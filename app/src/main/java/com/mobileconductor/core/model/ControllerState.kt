@@ -13,12 +13,6 @@ enum class ControllerState {
     /** 모든 유효 명령 처리. */
     ACTIVE,
 
-    /** 포인터 고정. RESUME만 유효. */
-    PAUSED,
-
     /** 모든 입력 무시. UNLOCK만 유효. */
-    LOCKED,
-
-    /** 드래그 진행 중. DRAG_END / DRAG_CANCEL / STOP(안전 우선)만 유효. */
-    DRAGGING
+    LOCKED
 }

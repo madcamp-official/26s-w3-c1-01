@@ -12,10 +12,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * A/B/C의 실제 구현을 묶은 의존성 번들. D의 `MockConductorDependencies` 자리에 들어간다.
+ * A/B/C의 실제 구현을 묶은 의존성 번들.
  *
- * D 핸드오프 §4.1이 지시한 대로 **이 클래스 하나만 갈아끼우면** ConductorContainer 이하
- * 배선은 그대로다.
+ * 이 클래스가 [ConductorContainer]에 실제 포트 구현을 주입한다.
  *
  * @param scope A의 좌표를 C로 중계하는 구독의 수명. Activity 스코프를 넘긴다.
  */

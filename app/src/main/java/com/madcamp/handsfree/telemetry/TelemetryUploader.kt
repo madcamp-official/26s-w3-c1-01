@@ -216,12 +216,6 @@ class FirebaseTelemetryUploader(
             if (!success && errorReason.isNotBlank()) {
                 put("failureReasons.$errorReason", FieldValue.increment(1))
             }
-            if (commandId == "DRAG_START" && success) {
-                put("dragStartSuccessCount", FieldValue.increment(1))
-            }
-            if (commandId == "DRAG_END" && success) {
-                put("dragEndSuccessCount", FieldValue.increment(1))
-            }
         }
     }
 

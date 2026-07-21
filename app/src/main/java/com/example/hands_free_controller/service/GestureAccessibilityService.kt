@@ -3,7 +3,6 @@ package com.example.hands_free_controller.service
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
-import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 
 class GestureAccessibilityService : AccessibilityService() {
@@ -16,8 +15,6 @@ class GestureAccessibilityService : AccessibilityService() {
         private const val VERTICAL_CURVE_RATIO = 0.015f
         private const val FLING_BREAKPOINT_RATIO = 0.58f
     }
-
-    private var activeDragStroke: GestureDescription.StrokeDescription? = null
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -49,17 +46,6 @@ class GestureAccessibilityService : AccessibilityService() {
         dispatchPath(path, 80, onResult)
     }
 
-    fun swipe(
-        startX: Float,
-        startY: Float,
-        endX: Float,
-        endY: Float,
-        durationMs: Long = 320,
-        onResult: (Boolean) -> Unit
-    ) {
-        dispatchPath(curvedPath(startX, startY, endX, endY), durationMs, onResult)
-    }
-
     fun flingSwipe(
         startX: Float,
         startY: Float,
@@ -87,83 +73,6 @@ class GestureAccessibilityService : AccessibilityService() {
             },
             onCancelled = { onResult(false) },
         )
-    }
-
-    fun drag(
-        startX: Float,
-        startY: Float,
-        endX: Float,
-        endY: Float,
-        durationMs: Long = 600,
-        onResult: (Boolean) -> Unit
-    ) {
-        swipe(startX, startY, endX, endY, durationMs, onResult)
-    }
-
-    fun startDrag(x: Float, y: Float, onResult: (Boolean) -> Unit) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            onResult(true)
-            return
-        }
-
-        val path = Path().apply {
-            moveTo(x, y)
-        }
-        activeDragStroke = GestureDescription.StrokeDescription(path, 0, 1, true)
-        dispatchStroke(activeDragStroke!!, onResult)
-    }
-
-    fun continueDrag(
-        startX: Float,
-        startY: Float,
-        endX: Float,
-        endY: Float,
-        onResult: (Boolean) -> Unit = {}
-    ) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            onResult(true)
-            return
-        }
-
-        val currentStroke = activeDragStroke
-        if (currentStroke == null) {
-            onResult(false)
-            return
-        }
-
-        val path = Path().apply {
-            moveTo(startX, startY)
-            lineTo(endX, endY)
-        }
-        activeDragStroke = currentStroke.continueStroke(path, 0, 80, true)
-        dispatchStroke(activeDragStroke!!, onResult)
-    }
-
-    fun endDrag(
-        x: Float,
-        y: Float,
-        onResult: (Boolean) -> Unit
-    ) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            onResult(true)
-            return
-        }
-
-        val currentStroke = activeDragStroke
-        if (currentStroke == null) {
-            onResult(false)
-            return
-        }
-
-        val path = Path().apply {
-            moveTo(x, y)
-        }
-        activeDragStroke = null
-        dispatchStroke(currentStroke.continueStroke(path, 0, 1, false), onResult)
-    }
-
-    fun cancelDrag() {
-        activeDragStroke = null
     }
 
     private fun dispatchPath(

@@ -139,7 +139,7 @@ object ControllerPipeline {
         // (서비스 정지 → onDestroy에서 파이프라인/오버레이 정리). stoppedByUser도 여기서 세워진다.
         OverlayBus.onExit = { OverlayService.stop(service.applicationContext) }
 
-        // 제어 명령(STOP/RESUME/LOCK/UNLOCK)은 상태만 바꾸고 C로 가지 않아서
+        // 제어 명령(LOCK/UNLOCK)은 상태만 바꾸고 C로 가지 않아서
         // 실행 결과도 폐기 사유도 남지 않는다. 즉 상태 전이를 안 찍으면
         // **"잠금"이 먹었는지 확인할 방법이 아예 없다.**
         service.lifecycleScope.launch {
@@ -178,9 +178,6 @@ object ControllerPipeline {
                     Log.e(TAG, "실행 실패 — ${r.commandId}: ${r.errorReason}")
                 }
             }
-        }
-        service.lifecycleScope.launch {
-            orchestrator.notices.collect { Log.i(TAG, "안내 — $it") }
         }
         service.lifecycleScope.launch {
             d.tracker.errors.collect { error ->

@@ -12,8 +12,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -57,21 +55,21 @@ class OrchestratorTest {
     }
 
     @Test
-    fun `STOP in ACTIVE transitions to PAUSED without any ExecutionCommand`() = runTest {
+    fun `LOCK in ACTIVE transitions to LOCKED without any ExecutionCommand`() = runTest {
         val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
         val (orch, voice, sink) = harness(ControllerState.ACTIVE, scope)
 
-        voice.inject(CommandId.STOP)
+        voice.inject(CommandId.LOCK)
 
         assertTrue("제어 명령은 C에 내려보내지 않아야 함", sink.executed.isEmpty())
-        assertEquals(ControllerState.PAUSED, orch.state.value)
+        assertEquals(ControllerState.LOCKED, orch.state.value)
         scope.cancel()
     }
 
     @Test
-    fun `invalid command in PAUSED is discarded and emits rejection`() = runTest {
+    fun `invalid command in LOCKED is discarded and emits unlock rejection`() = runTest {
         val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
-        val (orch, voice, sink) = harness(ControllerState.PAUSED, scope)
+        val (orch, voice, sink) = harness(ControllerState.LOCKED, scope)
 
         val rejections = mutableListOf<RejectReason>()
         scope.launch { orch.rejections.collect { rejections += it } }
@@ -79,88 +77,20 @@ class OrchestratorTest {
         voice.inject(CommandId.TOUCH)
 
         assertTrue(sink.executed.isEmpty())
-        assertEquals(ControllerState.PAUSED, orch.state.value)
-        assertEquals(listOf(RejectReason.INVALID_IN_STATE), rejections)
+        assertEquals(ControllerState.LOCKED, orch.state.value)
+        assertEquals(listOf(RejectReason.NEED_UNLOCK), rejections)
         scope.cancel()
     }
 
     @Test
-    fun `STOP during DRAGGING cancels drag first then pauses (safety priority)`() = runTest {
+    fun `UNLOCK in LOCKED transitions to ACTIVE without any ExecutionCommand`() = runTest {
         val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
-        val (orch, voice, sink) = harness(ControllerState.DRAGGING, scope)
+        val (orch, voice, sink) = harness(ControllerState.LOCKED, scope)
 
-        voice.inject(CommandId.STOP)
+        voice.inject(CommandId.UNLOCK)
 
-        // DRAG_CANCEL을 C에 먼저 내려보낸 뒤 PAUSED로 전이
-        assertEquals(1, sink.executed.size)
-        assertEquals(CommandId.DRAG_CANCEL, sink.executed.first().commandId)
-        assertEquals(ControllerState.PAUSED, orch.state.value)
-        scope.cancel()
-    }
-
-    @Test
-    fun `full drag lifecycle - start then end`() = runTest {
-        val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
-        val (orch, voice, sink) = harness(ControllerState.ACTIVE, scope)
-
-        voice.inject(CommandId.DRAG_START)
-        assertEquals(ControllerState.DRAGGING, orch.state.value)
-
-        voice.inject(CommandId.DRAG_END)
+        assertTrue("제어 명령은 C에 내려보내지 않아야 함", sink.executed.isEmpty())
         assertEquals(ControllerState.ACTIVE, orch.state.value)
-
-        assertEquals(
-            listOf(CommandId.DRAG_START, CommandId.DRAG_END),
-            sink.executed.map { it.commandId },
-        )
-        scope.cancel()
-    }
-
-    @Test
-    fun `DRAGGING auto-cancels after 30s and returns to ACTIVE with a notice`() = runTest {
-        val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
-        val (orch, voice, sink) = harness(ControllerState.ACTIVE, scope)
-
-        val notices = mutableListOf<OrchestratorNotice>()
-        scope.launch { orch.notices.collect { notices += it } }
-
-        voice.inject(CommandId.DRAG_START)
-        assertEquals(ControllerState.DRAGGING, orch.state.value)
-
-        advanceTimeBy(29_999)
-        runCurrent()
-        assertEquals("타임아웃 전에는 DRAGGING 유지", ControllerState.DRAGGING, orch.state.value)
-
-        advanceTimeBy(2)
-        runCurrent()
-        assertEquals(ControllerState.ACTIVE, orch.state.value)
-        assertEquals(
-            listOf(CommandId.DRAG_START, CommandId.DRAG_CANCEL),
-            sink.executed.map { it.commandId },
-        )
-        assertEquals(listOf(OrchestratorNotice.DRAG_AUTO_CANCELLED), notices)
-        scope.cancel()
-    }
-
-    @Test
-    fun `DRAG_END before timeout prevents auto-cancel`() = runTest {
-        val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
-        val (orch, voice, sink) = harness(ControllerState.ACTIVE, scope)
-
-        voice.inject(CommandId.DRAG_START)
-        advanceTimeBy(10_000)
-        runCurrent()
-        voice.inject(CommandId.DRAG_END)
-
-        advanceTimeBy(60_000) // 타이머가 해제됐어야 함
-        runCurrent()
-
-        assertEquals(ControllerState.ACTIVE, orch.state.value)
-        assertEquals(
-            "자동 취소가 일어나지 않아야 함",
-            listOf(CommandId.DRAG_START, CommandId.DRAG_END),
-            sink.executed.map { it.commandId },
-        )
         scope.cancel()
     }
 

@@ -1,7 +1,6 @@
 package com.example.hands_free_controller.input
 
 import android.content.Context
-import android.os.Build
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.WindowManager
@@ -16,19 +15,12 @@ class InputExecutionEngine(
 ) {
     private var latestPointerFrame: PointerFrame? = null
     private var lastValidPointerFrame: PointerFrame? = null
-    private var isDragging: Boolean = false
-    private var dragStart: ScreenPoint? = null
-    private var dragCurrent: ScreenPoint? = null
 
     fun updatePointerFrame(frame: PointerFrame) {
         latestPointerFrame = frame
 
         if (frame.faceDetected) {
             lastValidPointerFrame = frame
-        }
-
-        if (isDragging && frame.faceDetected) {
-            continueDrag(frame)
         }
     }
 
@@ -39,19 +31,12 @@ class InputExecutionEngine(
         when (command.commandId) {
             CommandId.TOUCH -> executeTouch(command, onResult)
             CommandId.BACK -> executeBack(command, onResult)
-            CommandId.DRAG_START -> executeDragStart(command, onResult)
-            CommandId.DRAG_END -> executeDragEnd(command, onResult)
-            CommandId.DRAG_CANCEL -> executeDragCancel(command, onResult)
             CommandId.SCROLL_DOWN,
             CommandId.SCROLL_UP,
             CommandId.NEXT,
             CommandId.PREV -> executeSwipe(command, onResult)
 
-            // 제어 명령(STOP/RESUME/LOCK/UNLOCK)은 OS 이벤트가 아니라 상태 전이 전용이라
-            // D가 C로 내려보내지 않는다. 통합 후 CommandId가 17종으로 합쳐지면서
-            // when이 이 값들까지 받게 됐는데, 도달하면 D의 배선이 틀린 것이다.
-            CommandId.STOP,
-            CommandId.RESUME,
+            // 제어 명령(LOCK/UNLOCK)은 OS 이벤트가 아니라 상태 전이 전용이라 D가 C로 내려보내지 않는다.
             CommandId.LOCK,
             CommandId.UNLOCK -> onResult(
                 ExecutionResult(
@@ -139,107 +124,6 @@ class InputExecutionEngine(
                 )
             )
         }
-    }
-
-    private fun executeDragStart(
-        command: ExecutionCommand,
-        onResult: (ExecutionResult) -> Unit
-    ) {
-        val pointer = resolvePointer(command, onResult) ?: return
-        val service = getService(command, pointer.frame, onResult) ?: return
-        val start = toScreenPoint(pointer.frame)
-
-        isDragging = true
-        dragStart = start
-        dragCurrent = start
-
-        service.startDrag(start.x, start.y) { gestureSuccess ->
-            onResult(
-                command.result(
-                    pointer = pointer,
-                    gestureSuccess = gestureSuccess
-                )
-            )
-        }
-    }
-
-    private fun executeDragEnd(
-        command: ExecutionCommand,
-        onResult: (ExecutionResult) -> Unit
-    ) {
-        if (!isDragging) {
-            onResult(command.invalidSequenceResult())
-            return
-        }
-
-        val pointer = resolvePointer(command, onResult) ?: return
-        val service = getService(command, pointer.frame, onResult) ?: return
-        val end = toScreenPoint(pointer.frame)
-        val start = dragStart
-
-        isDragging = false
-        dragCurrent = end
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            service.endDrag(end.x, end.y) { gestureSuccess ->
-                clearDrag()
-                onResult(command.result(pointer, gestureSuccess))
-            }
-        } else if (start != null) {
-            service.drag(start.x, start.y, end.x, end.y) { gestureSuccess ->
-                clearDrag()
-                onResult(command.result(pointer, gestureSuccess))
-            }
-        } else {
-            clearDrag()
-            onResult(command.invalidSequenceResult())
-        }
-    }
-
-    private fun executeDragCancel(
-        command: ExecutionCommand,
-        onResult: (ExecutionResult) -> Unit
-    ) {
-        if (!isDragging) {
-            onResult(command.invalidSequenceResult())
-            return
-        }
-
-        GestureAccessibilityService.instance?.cancelDrag()
-        clearDrag()
-
-        onResult(
-            ExecutionResult(
-                commandId = command.commandId,
-                success = true,
-                x = lastValidPointerFrame?.x,
-                y = lastValidPointerFrame?.y,
-                errorReason = null
-            )
-        )
-    }
-
-    private fun continueDrag(frame: PointerFrame) {
-        val service = GestureAccessibilityService.instance ?: return
-        val current = dragCurrent ?: return
-        val next = toScreenPoint(frame)
-
-        dragCurrent = next
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            service.continueDrag(
-                startX = current.x,
-                startY = current.y,
-                endX = next.x,
-                endY = next.y
-            )
-        }
-    }
-
-    private fun clearDrag() {
-        isDragging = false
-        dragStart = null
-        dragCurrent = null
     }
 
     private fun resolvePointer(
@@ -352,34 +236,6 @@ class InputExecutionEngine(
     }
 
     /**
-     * 포인터를 중심으로 [delta]만큼의 구간을 만들되, 화면 밖으로 나가면 **잘라내지 않고
-     * 통째로 밀어 넣는다.**
-     *
-     * 예전에는 양 끝을 각각 화면 안으로 clamp했는데, 그러면 포인터가 화면 가장자리에
-     * 있을 때 스와이프 길이가 조용히 짧아진다. 같은 명령인데 포인터 위치에 따라
-     * 넘어가기도 하고 안 넘어가기도 해서 원인을 짐작하기 어렵다.
-     *
-     * 가장자리에 여백을 두는 이유는 화면 맨 끝에서 시작하는 제스처가 시스템의
-     * 뒤로가기/홈 제스처로 가로채이기 때문이다.
-     */
-    private fun fitSegment(center: Float, delta: Float, bound: Int): Pair<Float, Float> {
-        val margin = bound * EDGE_MARGIN_RATIO
-        val min = margin
-        val max = bound - margin
-        // 화면보다 긴 스와이프는 만들 수 없다
-        val d = delta.coerceIn(-(max - min), max - min)
-
-        val start = center - d / 2f
-        val end = center + d / 2f
-        val shift = when {
-            minOf(start, end) < min -> min - minOf(start, end)
-            maxOf(start, end) > max -> max - maxOf(start, end)
-            else -> 0f
-        }
-        return (start + shift) to (end + shift)
-    }
-
-    /**
      * 스크롤과 페이지 넘김은 OS가 판정하는 방식이 달라 스와이프 시간도 달라야 한다.
      *
      * - **스크롤(위/아래)**: 손을 뗀 순간의 *속도*로 관성 스크롤이 걸린다. 짧을수록 좋다.
@@ -433,16 +289,6 @@ class InputExecutionEngine(
                 !gestureSuccess -> "OS_INJECTION_FAILED"
                 else -> null
             }
-        )
-    }
-
-    private fun ExecutionCommand.invalidSequenceResult(): ExecutionResult {
-        return ExecutionResult(
-            commandId = commandId,
-            success = false,
-            x = lastValidPointerFrame?.x,
-            y = lastValidPointerFrame?.y,
-            errorReason = "INVALID_SEQUENCE"
         )
     }
 
@@ -500,12 +346,5 @@ class InputExecutionEngine(
         const val HORIZONTAL_PAGE_END_RATIO = 0.15f
         const val HORIZONTAL_PAGE_SWIPE_Y_RATIO = 0.72f
 
-        /**
-         * 화면 가장자리에서 띄울 여백 비율.
-         *
-         * 화면 맨 끝에서 시작하는 제스처는 시스템의 뒤로가기/홈 제스처로 가로채여
-         * 앱에 전달되지 않는다.
-         */
-        const val EDGE_MARGIN_RATIO = 0.05f
     }
 }

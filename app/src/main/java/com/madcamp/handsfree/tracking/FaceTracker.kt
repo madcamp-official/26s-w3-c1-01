@@ -30,8 +30,8 @@ import java.util.concurrent.Executors
 /**
  * A파트의 진입점. 전면 카메라 → 얼굴 랜드마크 → PointerFrame 방출.
  *
- * **컨트롤러 상태(ACTIVE/PAUSED/LOCKED)를 전혀 모른다.** PAUSED에서 포인터를
- * 숨길지는 D가 이 출력을 걸러서 정한다. "PAUSED면 방출을 멈추자"고 고치는 순간
+ * **컨트롤러 상태(ACTIVE/LOCKED)를 전혀 모른다.** LOCKED에서 포인터를
+ * 숨길지는 D가 이 출력을 걸러서 정한다. "LOCKED면 방출을 멈추자"고 고치는 순간
  * A가 D의 상태 머신 완성을 안 기다려도 되는 이유가 사라진다.
  */
 class FaceTracker(
