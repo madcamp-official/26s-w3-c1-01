@@ -34,6 +34,10 @@ object OverlayBus {
     private val _clicks = MutableSharedFlow<ClickFeedback>(extraBufferCapacity = 8)
     val clicks: SharedFlow<ClickFeedback> = _clicks.asSharedFlow()
 
+    /** 음성 인식기가 지금 발화를 캡처하는 구간인지. 포인터 활성/비활성(회색) 표시에 쓴다. */
+    private val _listening = MutableStateFlow(false)
+    val listening: StateFlow<Boolean> = _listening.asStateFlow()
+
     /** LOCKED 수동 해제 버튼 탭 시 실행될 액션(앱이 UNLOCK 주입 등으로 설정). */
     @Volatile
     var onManualUnlock: (() -> Unit)? = null
@@ -46,4 +50,5 @@ object OverlayBus {
     fun publishPointer(frame: PointerFrame) { _pointer.value = frame }
     fun publishCalibration(ui: CalibrationUiState?) { _calibration.value = ui }
     fun publishClick(feedback: ClickFeedback) { _clicks.tryEmit(feedback) }
+    fun publishListening(listening: Boolean) { _listening.value = listening }
 }

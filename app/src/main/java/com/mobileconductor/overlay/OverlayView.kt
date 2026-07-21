@@ -30,6 +30,9 @@ class OverlayView(context: Context) : View(context) {
     /** 얼굴 미검출 여부. 상태(ControllerState)와는 별개의 신호라 따로 들고 있는다. */
     private var faceLost: Boolean = false
 
+    /** 음성 인식기가 지금 발화를 캡처하는 구간인지. 죽은 구간("띹" 이후)이면 포인터를 회색으로 만든다. */
+    private var listening: Boolean = false
+
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -40,6 +43,9 @@ class OverlayView(context: Context) : View(context) {
         textSize = dp(14f)
         typeface = Typeface.DEFAULT_BOLD
     }
+
+    // 입력 불가(얼굴 미검출 등) 시 포인터 링 색. 상단 인디케이터 회색과 같은 톤.
+    private val notReadyGray = Color.parseColor("#9E9E9E")
 
     private val unlockRect = RectF()
     private var clickX = 0f
@@ -71,6 +77,13 @@ class OverlayView(context: Context) : View(context) {
 
     fun setCalibration(ui: CalibrationUiState?) {
         this.calibration = ui
+        invalidate()
+    }
+
+    /** 음성 청취 구간 변화. 자주 토글되므로 값이 바뀔 때만 다시 그린다. */
+    fun setListening(value: Boolean) {
+        if (listening == value) return
+        listening = value
         invalidate()
     }
 
@@ -110,27 +123,45 @@ class OverlayView(context: Context) : View(context) {
 
     private fun drawPointer(canvas: Canvas, w: Float, h: Float) {
         val p = pointer ?: return
+        // LOCKED(숨김)·CALIBRATING(전용 UI)에서는 포인터를 그리지 않는다.
+        if (visuals.pointerVisibility == PointerVisibility.HIDDEN ||
+            visuals.pointerVisibility == PointerVisibility.CALIBRATION_ONLY
+        ) return
+
         val cx = p.x * w
         val cy = p.y * h
-        val radius = dp(14f)
-        when (visuals.pointerVisibility) {
-            PointerVisibility.MOVING -> {
-                fill.color = colorFor(visuals.indicatorColor); fill.alpha = 255
-                canvas.drawCircle(cx, cy, radius, fill)
-            }
-            PointerVisibility.FIXED_TRANSLUCENT -> {
-                fill.color = colorFor(visuals.indicatorColor); fill.alpha = 110
-                canvas.drawCircle(cx, cy, radius, fill)
-            }
-            PointerVisibility.MOVING_HIGHLIGHT -> {
-                fill.color = colorFor(visuals.indicatorColor); fill.alpha = 255
-                canvas.drawCircle(cx, cy, radius, fill)
-                stroke.color = Color.WHITE
-                canvas.drawCircle(cx, cy, radius + dp(6f), stroke)
-            }
-            PointerVisibility.HIDDEN -> { /* LOCKED: 포인터 미표시 */ }
-            PointerVisibility.CALIBRATION_ONLY -> { /* CALIBRATING 분기에서 처리 */ }
+        val radius = dp(12f)
+
+        // 속이 빈 링으로 그린다 — 채워진 원보다 화면을 덜 가린다.
+        // 색으로 입력 가능 여부를 알린다:
+        //   흰색 = 지금 입력을 받는다(ACTIVE + 얼굴 추적 정상 + 음성 청취 구간).
+        //   회색 = 입력이 의미 없는 순간 — 얼굴을 놓쳤거나, 음성 인식기가 "띵" 이후 죽은 구간이라
+        //          말해도 안 잡힐 때. 사용자가 "지금은 안 되는구나"를 눈으로 알 수 있게 한다.
+        val ready = state == ControllerState.ACTIVE && !faceLost && listening
+        val ringColor = if (ready) Color.WHITE else notReadyGray
+        val translucent = visuals.pointerVisibility == PointerVisibility.FIXED_TRANSLUCENT
+        val ringAlpha = if (translucent) 140 else 255
+
+        // 흰 링이 흰 배경에서 사라지지 않도록 옅은 어두운 테두리를 먼저 깐다(가림은 최소, 대비는 확보).
+        stroke.color = Color.BLACK
+        stroke.alpha = if (translucent) 40 else 70
+        stroke.strokeWidth = dp(5f)
+        canvas.drawCircle(cx, cy, radius, stroke)
+
+        stroke.color = ringColor
+        stroke.alpha = ringAlpha
+        stroke.strokeWidth = dp(3f)
+        canvas.drawCircle(cx, cy, radius, stroke)
+
+        // 드래그 중이면 바깥에 얇은 링을 하나 더 둘러 강조한다.
+        if (visuals.pointerVisibility == PointerVisibility.MOVING_HIGHLIGHT) {
+            stroke.strokeWidth = dp(2f)
+            canvas.drawCircle(cx, cy, radius + dp(5f), stroke)
         }
+
+        // 공유 stroke Paint 상태 복원(클릭 리플 등 다른 그리기와 간섭 방지).
+        stroke.strokeWidth = dp(3f)
+        stroke.alpha = 255
     }
 
     private fun drawCalibration(canvas: Canvas, w: Float, h: Float) {

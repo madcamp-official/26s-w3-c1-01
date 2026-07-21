@@ -84,6 +84,11 @@ class VoiceCommandSourceAdapter(
         recordVoiceFailure(error::class.simpleName ?: "VOICE_ENGINE_ERROR")
     }
 
+    override fun onListeningStateChanged(listening: Boolean) {
+        // 포인터 색(흰=입력 받는 중 / 회="띵" 이후 죽은 구간)에 반영한다.
+        OverlayBus.publishListening(listening)
+    }
+
     override fun onUnrecognizedSpeech(rawText: String) {
         // **인식된 문장을 그대로 찍지 않는다.** 마이크가 상시 켜져 있는 앱이라
         // 여기 들어오는 건 명령어가 아닌 모든 소리다 — 사용자의 혼잣말, 옆 사람 대화,

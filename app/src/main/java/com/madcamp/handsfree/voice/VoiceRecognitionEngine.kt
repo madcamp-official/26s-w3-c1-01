@@ -84,6 +84,7 @@ class VoiceRecognitionEngine(
 
     fun stop() {
         isListening = false
+        listener.onListeningStateChanged(false)
         mainHandler.removeCallbacksAndMessages(null)
         speechRecognizer?.cancel()
         speechRecognizer?.destroy()
@@ -218,17 +219,22 @@ class VoiceRecognitionEngine(
     private val recognitionListener = object : RecognitionListener {
         override fun onResults(results: Bundle) {
             mainHandler.removeCallbacks(unresponsiveWatchdog)
+            // 결과가 나왔으면 이번 청취 구간은 닫혔다 — 다음 시작 전까지는 말해도 안 잡힌다.
+            listener.onListeningStateChanged(false)
             handleResults(results)
         }
 
         override fun onError(error: Int) {
             mainHandler.removeCallbacks(unresponsiveWatchdog)
+            listener.onListeningStateChanged(false)
             handleError(error)
         }
 
         /** 인식기가 살아 있다는 유일한 확실한 신호. 감시자를 해제한다 */
         override fun onReadyForSpeech(params: Bundle?) {
             mainHandler.removeCallbacks(unresponsiveWatchdog)
+            // 청취 구간 시작("뚱"). 지금부터 말하면 잡힌다.
+            listener.onListeningStateChanged(true)
         }
 
         override fun onBeginningOfSpeech() {
@@ -237,7 +243,9 @@ class VoiceRecognitionEngine(
 
         override fun onRmsChanged(rmsdB: Float) {}
         override fun onBufferReceived(buffer: ByteArray?) {}
-        override fun onEndOfSpeech() {}
+
+        // 발화 종료("띵"). 캡처가 끝나 다음 구간 전까지는 말해도 무시된다.
+        override fun onEndOfSpeech() { listener.onListeningStateChanged(false) }
         override fun onPartialResults(partialResults: Bundle?) {}
         override fun onEvent(eventType: Int, params: Bundle?) {}
     }
