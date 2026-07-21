@@ -137,7 +137,7 @@
                 <!-- 탭 · 이동 -->
                 <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_tap" />
                 <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;터치&quot; · &quot;클릭&quot;" />
+                    <TextView style="@style/CommandSynonyms" android:text="&quot;탭&quot; · &quot;터치&quot; · &quot;클릭&quot;" />
                     <TextView style="@style/CommandAction" android:text="현재 위치 탭" />
                 </LinearLayout>
                 <LinearLayout style="@style/CommandRow">
@@ -149,56 +149,37 @@
                     <TextView style="@style/CommandAction" android:text="이전으로 이동" />
                 </LinearLayout>
 
-                <!-- 드래그 -->
-                <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_drag" />
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;잡아&quot; · &quot;드래그 시작&quot;" />
-                    <TextView style="@style/CommandAction" android:text="드래그 시작" />
-                </LinearLayout>
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;놓아&quot; · &quot;놔&quot;" />
-                    <TextView style="@style/CommandAction" android:text="드래그 종료" />
-                </LinearLayout>
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;드래그 취소&quot;" />
-                    <TextView style="@style/CommandAction" android:text="드래그 취소" />
-                </LinearLayout>
-
                 <!-- 스크롤 -->
                 <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_scroll" />
                 <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;위로&quot; · &quot;올려&quot;" />
+                    <TextView style="@style/CommandSynonyms" android:text="&quot;위로&quot; · &quot;올려&quot; · &quot;위&quot;" />
                     <TextView style="@style/CommandAction" android:text="위로 스크롤" />
                 </LinearLayout>
                 <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;아래로&quot; · &quot;내려&quot;" />
+                    <TextView style="@style/CommandSynonyms" android:text="&quot;아래로&quot; · &quot;내려&quot; · &quot;아래&quot;" />
                     <TextView style="@style/CommandAction" android:text="아래로 스크롤" />
                 </LinearLayout>
 
                 <!-- 화면 전환 -->
                 <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_back" />
                 <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;취소&quot;" />
+                    <TextView style="@style/CommandSynonyms" android:text="&quot;취소&quot; · &quot;뒤로&quot;" />
                     <TextView style="@style/CommandAction" android:text="뒤로 가기" />
                 </LinearLayout>
 
-                <!-- 제어 -->
+                <!-- 잠금 · 종료 -->
                 <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_control" />
                 <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;멈춰&quot;" />
-                    <TextView style="@style/CommandAction" android:text="일시정지" />
-                </LinearLayout>
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;다시 시작&quot;" />
-                    <TextView style="@style/CommandAction" android:text="재개" />
-                </LinearLayout>
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;잠금&quot;" />
-                    <TextView style="@style/CommandAction" android:text="입력 잠금" />
+                    <TextView style="@style/CommandSynonyms" android:text="&quot;잠금&quot; · &quot;끝&quot; · &quot;멈춰&quot;" />
+                    <TextView style="@style/CommandAction" android:text="화면 잠금 (표시 숨김)" />
                 </LinearLayout>
                 <LinearLayout style="@style/CommandRow">
                     <TextView style="@style/CommandSynonyms" android:text="&quot;해제&quot;" />
                     <TextView style="@style/CommandAction" android:text="잠금 해제" />
+                </LinearLayout>
+                <LinearLayout style="@style/CommandRow">
+                    <TextView style="@style/CommandSynonyms" android:text="&quot;종료&quot;" />
+                    <TextView style="@style/CommandAction" android:text="앱 종료" />
                 </LinearLayout>
             </LinearLayout>
 

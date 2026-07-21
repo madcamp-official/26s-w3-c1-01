@@ -18,10 +18,9 @@
     <!-- 사용법 가이드 (상태 배지 바로 아래, 진행 상태와 무관하게 언제든 열람 가능) -->
     <string name="usage_guide_title">사용법 가이드</string>
     <string name="usage_guide_group_tap">탭 · 이동</string>
-    <string name="usage_guide_group_drag">드래그</string>
     <string name="usage_guide_group_scroll">스크롤</string>
     <string name="usage_guide_group_back">화면 전환</string>
-    <string name="usage_guide_group_control">제어</string>
+    <string name="usage_guide_group_control">잠금 · 종료</string>
     <string name="usage_guide_notification_note">컨트롤러가 켜져 있는 동안 알림에 정지 버튼이 함께 표시돼요. 기기 알림을 꺼두면 이 버튼도 함께 사라지니 주의하세요.</string>
 
     <!-- 설정 3단계 (순서형 카드) -->
