@@ -5,18 +5,36 @@
     <string name="accessibility_service_description">얼굴 방향으로 정한 위치와 음성 명령으로 터치, 스크롤, 드래그를 대신 실행합니다. 화면 내용은 수집하거나 저장하지 않습니다.</string>
 
     <string name="setup_title">핸즈프리 컨트롤러</string>
-    <string name="setup_guide">순서대로 눌러 주세요. 접근성 서비스와 오버레이 권한이 없으면 명령을 실행할 수 없습니다.</string>
-    <string name="btn_accessibility">1. 접근성 서비스 켜기</string>
-    <string name="btn_overlay">2. 오버레이 권한 / 시작</string>
-    <string name="btn_start">3. 시작</string>
+    <string name="setup_subtitle">얼굴 방향과 음성 명령으로 화면을 조작합니다</string>
+
+    <!-- 상태 배지 (화면 최상단, 짧은 라벨) -->
+    <string name="status_idle">대기 중</string>
+    <string name="status_progress">진행 중</string>
+    <string name="status_calibrating">캘리브레이션 중</string>
+    <string name="status_active">동작 중</string>
+    <string name="status_permission_denied">권한 필요</string>
+    <string name="status_need_overlay">오버레이 권한 필요</string>
+
+    <!-- 사용법 가이드 (상태 배지 바로 아래, 진행 상태와 무관하게 언제든 열람 가능) -->
+    <string name="usage_guide_title">사용법 가이드</string>
+    <string name="usage_guide_group_tap">탭 · 이동</string>
+    <string name="usage_guide_group_drag">드래그</string>
+    <string name="usage_guide_group_scroll">스크롤</string>
+    <string name="usage_guide_group_back">화면 전환</string>
+    <string name="usage_guide_group_control">제어</string>
+    <string name="usage_guide_notification_note">컨트롤러가 켜져 있는 동안 알림에 정지 버튼이 함께 표시돼요. 기기 알림을 꺼두면 이 버튼도 함께 사라지니 주의하세요.</string>
+
+    <!-- 설정 3단계 (순서형 카드) -->
+    <string name="step_accessibility_title">접근성 서비스 켜기</string>
+    <string name="step_accessibility_desc">실제 터치·스크롤·드래그를 대신 실행하려면 필요해요</string>
+    <string name="step_overlay_title">오버레이 권한 허용</string>
+    <string name="step_overlay_desc">포인터와 상태 표시를 화면 위에 띄워요</string>
+    <string name="step_start_title">카메라·마이크로 시작</string>
+    <string name="step_start_desc">얼굴 방향과 음성 명령을 인식해요</string>
+    <string name="step_locked_hint">이전 단계를 먼저 완료하세요</string>
+
     <string name="btn_recalibrate">캘리브레이션 다시 하기</string>
     <string name="btn_stop">정지 (카메라, 마이크 끄기)</string>
-
-    <string name="status_idle">대기 중</string>
-    <string name="status_calibrating">캘리브레이션 진행 중입니다. 화면 안내에 따라 각 지점을 바라보세요.</string>
-    <string name="status_active">동작 중입니다. 이 화면을 벗어나도 오버레이가 유지됩니다.</string>
-    <string name="status_permission_denied">카메라, 마이크 권한이 없으면 동작할 수 없습니다.</string>
-    <string name="status_need_overlay">먼저 2번에서 오버레이 권한을 허용해 주세요.</string>
 
     <string name="telemetry_title">진단 데이터 전송</string>
     <string name="telemetry_consent">진단 데이터 전송에 동의합니다.</string>

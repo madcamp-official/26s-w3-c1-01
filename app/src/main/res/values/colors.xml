@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 기본 톤 — 미니멀 흑백(디자인 문서 기준), 색상은 상태 배지에서만 사용 -->
+    <color name="page_bg">#F7F7F5</color>
+    <color name="card_bg">#FDFDFC</color>
+    <color name="card_border">#E5E4E0</color>
+    <color name="text_primary">#262624</color>
+    <color name="text_secondary">#75736E</color>
+    <color name="text_faint">#A8A6A0</color>
+    <color name="surface_muted">#F0F0EE</color>
+    <color name="accent_ink">#262624</color>
+    <color name="accent_ink_on">#FDFDFC</color>
+    <color name="danger_text">#A6432B</color>
+    <color name="danger_border">#E3BBAE</color>
+
+    <!-- 상태 배지 — 대기 -->
+    <color name="status_idle_bg">#EDEDEA</color>
+    <color name="status_idle_fg">#5F5D58</color>
+    <color name="status_idle_dot">#8C8A85</color>
+
+    <!-- 상태 배지 — 진행 중 -->
+    <color name="status_progress_bg">#E4EAFB</color>
+    <color name="status_progress_fg">#3B57A0</color>
+    <color name="status_progress_dot">#5D7BD1</color>
+
+    <!-- 상태 배지 — 캘리브레이션 중 -->
+    <color name="status_calibrating_bg">#FBE8CE</color>
+    <color name="status_calibrating_fg">#9C6A1E</color>
+    <color name="status_calibrating_dot">#D4922E</color>
+
+    <!-- 상태 배지 — 동작 중 -->
+    <color name="status_active_bg">#DFF0E5</color>
+    <color name="status_active_fg">#2E6B47</color>
+    <color name="status_active_dot">#4C9A6C</color>
+
+    <!-- 상태 배지 — 권한 거부 -->
+    <color name="status_denied_bg">#FBE2DC</color>
+    <color name="status_denied_fg">#A33F29</color>
+    <color name="status_denied_dot">#D35B3D</color>
+</resources>

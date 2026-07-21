@@ -1,7 +1,9 @@
 package com.madcamp.handsfree.integration
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -14,6 +16,7 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.madcamp.handsfree.BuildConfig
 import com.madcamp.handsfree.R
@@ -37,10 +40,24 @@ import kotlinx.coroutines.launch
  */
 class ControllerActivity : AppCompatActivity() {
 
+    private lateinit var statusBadge: View
+    private lateinit var statusDot: View
     private lateinit var statusText: TextView
     private lateinit var telemetryStatusText: TextView
     private lateinit var telemetrySettings: TelemetrySettings
     private lateinit var telemetryQueue: LocalTelemetryQueue
+
+    private lateinit var stepAccessibilityRow: View
+    private lateinit var stepAccessibilityNumber: TextView
+    private lateinit var stepOverlayRow: View
+    private lateinit var stepOverlayNumber: TextView
+    private lateinit var stepStartRow: View
+    private lateinit var stepStartNumber: TextView
+
+    /** C의 접근성 서비스 컴포넌트. 실제 구현 패키지는 통합 이전 그대로다(OPEN_ISSUES 참고). */
+    private val accessibilityServiceComponent by lazy {
+        ComponentName(packageName, "com.example.hands_free_controller.service.GestureAccessibilityService")
+    }
 
     private val permissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -55,7 +72,12 @@ class ControllerActivity : AppCompatActivity() {
             if (granted[Manifest.permission.CAMERA] == false) {
                 telemetryLogger.logAppError("CAMERA_PERMISSION_DENIED")
             }
-            statusText.setText(R.string.status_permission_denied)
+            applyStatus(
+                R.string.status_permission_denied,
+                R.color.status_denied_bg,
+                R.color.status_denied_fg,
+                R.color.status_denied_dot,
+            )
             updateTelemetryStatus()
         }
     }
@@ -69,16 +91,36 @@ class ControllerActivity : AppCompatActivity() {
 
         telemetrySettings = TelemetrySettings(applicationContext)
         telemetryQueue = LocalTelemetryQueue(applicationContext)
+        statusBadge = findViewById(R.id.status_badge)
+        statusDot = findViewById(R.id.status_dot)
         statusText = findViewById(R.id.status_text)
         telemetryStatusText = findViewById(R.id.telemetry_status_text)
 
-        findViewById<Button>(R.id.btn_accessibility).setOnClickListener {
+        stepAccessibilityRow = findViewById(R.id.step_accessibility)
+        stepAccessibilityNumber = findViewById(R.id.step_accessibility_number)
+        stepOverlayRow = findViewById(R.id.step_overlay)
+        stepOverlayNumber = findViewById(R.id.step_overlay_number)
+        stepStartRow = findViewById(R.id.step_start)
+        stepStartNumber = findViewById(R.id.step_start_number)
+
+        stepAccessibilityRow.setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
-        findViewById<Button>(R.id.btn_overlay).setOnClickListener { requestOverlayPermission() }
-        findViewById<Button>(R.id.btn_start).setOnClickListener {
+        stepOverlayRow.setOnClickListener { requestOverlayPermission() }
+        stepStartRow.setOnClickListener {
             permissions.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
         }
+
+        // 사용법 가이드는 진행 상태와 무관하게 언제든 열람 가능해야 한다(구현 지시).
+        val usageGuideToggle = findViewById<View>(R.id.usage_guide_toggle)
+        val usageGuideContent = findViewById<View>(R.id.usage_guide_content)
+        val usageGuideArrow = findViewById<TextView>(R.id.usage_guide_arrow)
+        usageGuideToggle.setOnClickListener {
+            val expanding = usageGuideContent.visibility != View.VISIBLE
+            usageGuideContent.visibility = if (expanding) View.VISIBLE else View.GONE
+            usageGuideArrow.text = if (expanding) "▴" else "▾"
+        }
+
         // 저장된 프로파일을 버리고 처음부터 다시 잡는다.
         // 자세나 거치 위치가 바뀌면 기존 범위가 안 맞는다.
         findViewById<Button>(R.id.btn_recalibrate).setOnClickListener {
@@ -88,7 +130,8 @@ class ControllerActivity : AppCompatActivity() {
         // 알림의 정지 버튼과 같은 동작. 서비스가 죽으면 파이프라인도 같이 정리된다.
         findViewById<Button>(R.id.btn_stop).setOnClickListener {
             OverlayService.stop(this)
-            statusText.setText(R.string.status_idle)
+            applyStatus(R.string.status_idle, R.color.status_idle_bg, R.color.status_idle_fg, R.color.status_idle_dot)
+            refreshStepStates()
         }
 
         val telemetryLogger = Telemetry.logger(applicationContext)
@@ -145,18 +188,77 @@ class ControllerActivity : AppCompatActivity() {
             firebaseTestButton.visibility = View.GONE
         }
         updateTelemetryStatus()
+        refreshStepStates()
 
         lifecycleScope.launch {
             ControllerPipeline.calibrating.collect { running ->
-                statusText.setText(
-                    when {
-                        running -> R.string.status_calibrating
-                        ControllerPipeline.isRunning -> R.string.status_active
-                        else -> R.string.status_idle
-                    }
-                )
+                when {
+                    running -> applyStatus(
+                        R.string.status_calibrating,
+                        R.color.status_calibrating_bg,
+                        R.color.status_calibrating_fg,
+                        R.color.status_calibrating_dot,
+                    )
+                    ControllerPipeline.isRunning -> applyStatus(
+                        R.string.status_active,
+                        R.color.status_active_bg,
+                        R.color.status_active_fg,
+                        R.color.status_active_dot,
+                    )
+                    else -> applyStatus(
+                        R.string.status_idle,
+                        R.color.status_idle_bg,
+                        R.color.status_idle_fg,
+                        R.color.status_idle_dot,
+                    )
+                }
+                refreshStepStates()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 접근성/오버레이 권한은 설정 화면에서 바뀌고 돌아오므로, 돌아올 때마다 다시 확인해야 한다.
+        refreshStepStates()
+    }
+
+    /** 상태 배지의 텍스트·배경·점 색을 한 번에 맞춘다. */
+    private fun applyStatus(labelRes: Int, bgColorRes: Int, fgColorRes: Int, dotColorRes: Int) {
+        statusText.setText(labelRes)
+        statusText.setTextColor(ContextCompat.getColor(this, fgColorRes))
+        statusBadge.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, bgColorRes))
+        statusDot.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, dotColorRes))
+    }
+
+    private fun isAccessibilityServiceEnabled(): Boolean {
+        val enabled = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
+            ?: return false
+        return enabled.split(':').any { raw -> ComponentName.unflattenFromString(raw) == accessibilityServiceComponent }
+    }
+
+    /**
+     * 3단계 순서형 카드의 완료/진행/잠김 상태를 실제 권한 상태 기준으로 갱신한다.
+     *
+     * **건너뛰기를 막는다(구현 지시)** — 이전 단계가 끝나야 다음 단계 카드가 눌린다.
+     */
+    private fun refreshStepStates() {
+        val accessibilityDone = isAccessibilityServiceEnabled()
+        val overlayDone = Settings.canDrawOverlays(this)
+        val startDone = ControllerPipeline.isRunning
+
+        setStepState(stepAccessibilityRow, stepAccessibilityNumber, "1", done = accessibilityDone, locked = false)
+        setStepState(stepOverlayRow, stepOverlayNumber, "2", done = overlayDone, locked = !accessibilityDone)
+        setStepState(stepStartRow, stepStartNumber, "3", done = startDone, locked = !overlayDone)
+    }
+
+    private fun setStepState(row: View, number: TextView, index: String, done: Boolean, locked: Boolean) {
+        row.isEnabled = !locked
+        row.isClickable = !locked
+        row.alpha = if (locked) 0.45f else 1f
+        val circleColorRes = if (done) R.color.status_active_dot else R.color.accent_ink
+        number.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, circleColorRes))
+        number.text = if (done) "✓" else index
     }
 
     private fun updateTelemetryStatus() {
@@ -189,7 +291,12 @@ class ControllerActivity : AppCompatActivity() {
      */
     private fun startControllerAndCalibrate() {
         if (!Settings.canDrawOverlays(this)) {
-            statusText.setText(R.string.status_need_overlay)
+            applyStatus(
+                R.string.status_need_overlay,
+                R.color.status_progress_bg,
+                R.color.status_progress_fg,
+                R.color.status_progress_dot,
+            )
             requestOverlayPermission()
             return
         }
