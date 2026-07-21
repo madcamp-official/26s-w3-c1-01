@@ -11,6 +11,10 @@ class GestureAccessibilityService : AccessibilityService() {
     companion object {
         var instance: GestureAccessibilityService? = null
             private set
+
+        private const val HORIZONTAL_CURVE_RATIO = 0.025f
+        private const val VERTICAL_CURVE_RATIO = 0.015f
+        private const val FLING_BREAKPOINT_RATIO = 0.58f
     }
 
     private var activeDragStroke: GestureDescription.StrokeDescription? = null
@@ -53,12 +57,36 @@ class GestureAccessibilityService : AccessibilityService() {
         durationMs: Long = 320,
         onResult: (Boolean) -> Unit
     ) {
-        val path = Path().apply {
-            moveTo(startX, startY)
-            lineTo(endX, endY)
-        }
+        dispatchPath(curvedPath(startX, startY, endX, endY), durationMs, onResult)
+    }
 
-        dispatchPath(path, durationMs, onResult)
+    fun flingSwipe(
+        startX: Float,
+        startY: Float,
+        endX: Float,
+        endY: Float,
+        warmupDurationMs: Long,
+        flingDurationMs: Long,
+        onResult: (Boolean) -> Unit
+    ) {
+        val midX = startX + (endX - startX) * FLING_BREAKPOINT_RATIO
+        val midY = startY + (endY - startY) * FLING_BREAKPOINT_RATIO
+        val firstPath = curvedPath(startX, startY, midX, midY)
+        val firstStroke = GestureDescription.StrokeDescription(firstPath, 0, warmupDurationMs, true)
+
+        dispatchStroke(
+            stroke = firstStroke,
+            onCompleted = {
+                val secondPath = curvedPath(midX, midY, endX, endY)
+                val secondStroke = firstStroke.continueStroke(secondPath, 0, flingDurationMs, false)
+                dispatchStroke(
+                    stroke = secondStroke,
+                    onCompleted = { onResult(true) },
+                    onCancelled = { onResult(false) },
+                )
+            },
+            onCancelled = { onResult(false) },
+        )
     }
 
     fun drag(
@@ -149,9 +177,41 @@ class GestureAccessibilityService : AccessibilityService() {
         )
     }
 
+    private fun curvedPath(
+        startX: Float,
+        startY: Float,
+        endX: Float,
+        endY: Float
+    ): Path {
+        return Path().apply {
+            moveTo(startX, startY)
+            val dx = endX - startX
+            val dy = endY - startY
+            if (kotlin.math.abs(dx) > kotlin.math.abs(dy)) {
+                val controlY = (startY + endY) / 2f - kotlin.math.abs(dx) * HORIZONTAL_CURVE_RATIO
+                quadTo((startX + endX) / 2f, controlY, endX, endY)
+            } else {
+                val controlX = (startX + endX) / 2f + kotlin.math.abs(dy) * VERTICAL_CURVE_RATIO
+                quadTo(controlX, (startY + endY) / 2f, endX, endY)
+            }
+        }
+    }
+
     private fun dispatchStroke(
         stroke: GestureDescription.StrokeDescription,
         onResult: (Boolean) -> Unit
+    ) {
+        dispatchStroke(
+            stroke = stroke,
+            onCompleted = { onResult(true) },
+            onCancelled = { onResult(false) },
+        )
+    }
+
+    private fun dispatchStroke(
+        stroke: GestureDescription.StrokeDescription,
+        onCompleted: () -> Unit,
+        onCancelled: () -> Unit
     ) {
         val gesture = GestureDescription.Builder()
             .addStroke(stroke)
@@ -161,11 +221,11 @@ class GestureAccessibilityService : AccessibilityService() {
             gesture,
             object : GestureResultCallback() {
                 override fun onCompleted(gestureDescription: GestureDescription?) {
-                    onResult(true)
+                    onCompleted()
                 }
 
                 override fun onCancelled(gestureDescription: GestureDescription?) {
-                    onResult(false)
+                    onCancelled()
                 }
             },
             null

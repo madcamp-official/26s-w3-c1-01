@@ -10,11 +10,7 @@ import com.mobileconductor.core.model.CommandId.NEXT
 import com.mobileconductor.core.model.CommandId.PREV
 import com.mobileconductor.core.model.CommandId.RESUME
 import com.mobileconductor.core.model.CommandId.SCROLL_DOWN
-import com.mobileconductor.core.model.CommandId.SCROLL_DOWN_LARGE
-import com.mobileconductor.core.model.CommandId.SCROLL_DOWN_SMALL
 import com.mobileconductor.core.model.CommandId.SCROLL_UP
-import com.mobileconductor.core.model.CommandId.SCROLL_UP_LARGE
-import com.mobileconductor.core.model.CommandId.SCROLL_UP_SMALL
 import com.mobileconductor.core.model.CommandId.STOP
 import com.mobileconductor.core.model.CommandId.TOUCH
 import com.mobileconductor.core.model.CommandId.UNLOCK
@@ -49,10 +45,6 @@ object TransitionTable {
         put(ACTIVE to DRAG_START, Rule(DRAGGING, DRAG_START))
         put(ACTIVE to SCROLL_DOWN, Rule(ACTIVE, SCROLL_DOWN))
         put(ACTIVE to SCROLL_UP, Rule(ACTIVE, SCROLL_UP))
-        put(ACTIVE to SCROLL_DOWN_SMALL, Rule(ACTIVE, SCROLL_DOWN_SMALL))
-        put(ACTIVE to SCROLL_UP_SMALL, Rule(ACTIVE, SCROLL_UP_SMALL))
-        put(ACTIVE to SCROLL_DOWN_LARGE, Rule(ACTIVE, SCROLL_DOWN_LARGE))
-        put(ACTIVE to SCROLL_UP_LARGE, Rule(ACTIVE, SCROLL_UP_LARGE))
         put(ACTIVE to NEXT, Rule(ACTIVE, NEXT))
         put(ACTIVE to PREV, Rule(ACTIVE, PREV))
         put(ACTIVE to STOP, Rule(PAUSED, null))       // 제어: OS 이벤트 없음

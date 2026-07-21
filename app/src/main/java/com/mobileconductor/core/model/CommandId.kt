@@ -22,10 +22,6 @@ enum class CommandId {
     // 스크롤 — FR-004 (방향 × 강도)
     SCROLL_DOWN,        // 기본 아래 (~50%)
     SCROLL_UP,          // 기본 위   (~50%)
-    SCROLL_DOWN_SMALL,  // 조금 아래 (~20%)
-    SCROLL_UP_SMALL,    // 조금 위   (~20%)
-    SCROLL_DOWN_LARGE,  // 크게 아래 (~80%)
-    SCROLL_UP_LARGE,    // 크게 위   (~80%)
 
     // 발표(시나리오4) — 좌/우 스와이프로 매핑
     NEXT,

@@ -18,10 +18,6 @@ object CommandDictionary {
         CommandDefinition("DRAG_CANCEL", listOf("드래그 취소")),
         CommandDefinition("SCROLL_DOWN", listOf("아래로", "내려")),
         CommandDefinition("SCROLL_UP", listOf("위로", "올려")),
-        CommandDefinition("SCROLL_DOWN_SMALL", listOf("조금 아래로")),
-        CommandDefinition("SCROLL_UP_SMALL", listOf("조금 위로")),
-        CommandDefinition("SCROLL_DOWN_LARGE", listOf("크게 아래로")),
-        CommandDefinition("SCROLL_UP_LARGE", listOf("크게 위로")),
         CommandDefinition("STOP", listOf("멈춰")),
         CommandDefinition("RESUME", listOf("다시 시작")),
         CommandDefinition("LOCK", listOf("잠금")),
@@ -36,17 +32,20 @@ object CommandDictionary {
     private val maxPhraseWordCount: Int =
         definitions.flatMap { it.synonyms }.maxOf { it.trim().split(Regex("\\s+")).size }
 
+    private val removedScrollStrengthPhrases: Set<String> =
+        setOf("조금 아래로", "조금 위로", "크게 아래로", "크게 위로")
+
     /** 정규화된 텍스트에서 가장 먼저 매칭되는 명령 하나만 필요할 때 사용. */
     fun match(text: String): String? = matchAll(text).firstOrNull()?.commandId
 
     /**
      * 발화 텍스트에서 사전에 등록된 명령을 순서대로 모두 찾는다.
-     * "조금 아래로 조금 위로"처럼 한 문장에 여러 명령이 이어져도 개별 매치로 분리된다.
-     * 각 위치에서 가장 긴 어구부터 매칭을 시도해 "조금 아래로"가 "아래로"로 잘못 쪼개지지 않도록 한다.
+     * 한 문장에 여러 명령이 이어져도 개별 매치로 분리한다.
      */
     fun matchAll(text: String): List<CommandMatch> {
         val normalized = text.trim().replace(Regex("\\s+"), " ")
         if (normalized.isEmpty()) return emptyList()
+        if (normalized in removedScrollStrengthPhrases) return emptyList()
 
         val words = normalized.split(" ")
         val results = mutableListOf<CommandMatch>()

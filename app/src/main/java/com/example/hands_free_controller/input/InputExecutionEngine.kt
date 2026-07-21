@@ -44,10 +44,6 @@ class InputExecutionEngine(
             CommandId.DRAG_CANCEL -> executeDragCancel(command, onResult)
             CommandId.SCROLL_DOWN,
             CommandId.SCROLL_UP,
-            CommandId.SCROLL_DOWN_SMALL,
-            CommandId.SCROLL_UP_SMALL,
-            CommandId.SCROLL_DOWN_LARGE,
-            CommandId.SCROLL_UP_LARGE,
             CommandId.NEXT,
             CommandId.PREV -> executeSwipe(command, onResult)
 
@@ -128,12 +124,13 @@ class InputExecutionEngine(
             ),
         )
 
-        service.swipe(
+        service.flingSwipe(
             startX = swipe.startX,
             startY = swipe.startY,
             endX = swipe.endX,
             endY = swipe.endY,
-            durationMs = duration,
+            warmupDurationMs = warmupDurationFor(command.commandId),
+            flingDurationMs = flingDurationFor(command.commandId),
         ) { gestureSuccess ->
             onResult(
                 command.result(
@@ -311,25 +308,47 @@ class InputExecutionEngine(
         screenWidth: Int,
         screenHeight: Int
     ): SwipeCoordinates {
-        val verticalDistance = screenHeight * scrollRatio(commandId)
-        val horizontalDistance = screenWidth * HORIZONTAL_SWIPE_RATIO
-
-        val (dx, dy) = when (commandId) {
-            CommandId.SCROLL_DOWN,
-            CommandId.SCROLL_DOWN_SMALL,
-            CommandId.SCROLL_DOWN_LARGE -> 0f to -verticalDistance
-            CommandId.SCROLL_UP,
-            CommandId.SCROLL_UP_SMALL,
-            CommandId.SCROLL_UP_LARGE -> 0f to verticalDistance
-            CommandId.NEXT -> -horizontalDistance to 0f
-            CommandId.PREV -> horizontalDistance to 0f
-            else -> 0f to 0f
+        when (commandId) {
+            CommandId.SCROLL_DOWN -> {
+                val x = centerX.coerceIn(screenWidth * 0.25f, screenWidth * 0.75f)
+                return SwipeCoordinates(
+                    startX = x,
+                    startY = screenHeight * VERTICAL_SCROLL_START_RATIO,
+                    endX = x,
+                    endY = screenHeight * VERTICAL_SCROLL_END_RATIO,
+                )
+            }
+            CommandId.SCROLL_UP -> {
+                val x = centerX.coerceIn(screenWidth * 0.25f, screenWidth * 0.75f)
+                return SwipeCoordinates(
+                    startX = x,
+                    startY = screenHeight * VERTICAL_SCROLL_END_RATIO,
+                    endX = x,
+                    endY = screenHeight * VERTICAL_SCROLL_START_RATIO,
+                )
+            }
+            CommandId.NEXT -> {
+                val y = screenHeight * HORIZONTAL_PAGE_SWIPE_Y_RATIO
+                return SwipeCoordinates(
+                    startX = screenWidth * HORIZONTAL_PAGE_START_RATIO,
+                    startY = y,
+                    endX = screenWidth * HORIZONTAL_PAGE_END_RATIO,
+                    endY = y,
+                )
+            }
+            CommandId.PREV -> {
+                val y = screenHeight * HORIZONTAL_PAGE_SWIPE_Y_RATIO
+                return SwipeCoordinates(
+                    startX = screenWidth * HORIZONTAL_PAGE_END_RATIO,
+                    startY = y,
+                    endX = screenWidth * HORIZONTAL_PAGE_START_RATIO,
+                    endY = y,
+                )
+            }
+            else -> Unit
         }
 
-        val (startX, endX) = fitSegment(centerX, dx, screenWidth)
-        val (startY, endY) = fitSegment(centerY, dy, screenHeight)
-
-        return SwipeCoordinates(startX, startY, endX, endY)
+        return SwipeCoordinates(centerX, centerY, centerX, centerY)
     }
 
     /**
@@ -375,6 +394,16 @@ class InputExecutionEngine(
         else -> SCROLL_SWIPE_DURATION_MS
     }
 
+    private fun warmupDurationFor(commandId: CommandId): Long = when (commandId) {
+        CommandId.NEXT, CommandId.PREV -> PAGE_SWIPE_WARMUP_DURATION_MS
+        else -> SCROLL_SWIPE_WARMUP_DURATION_MS
+    }
+
+    private fun flingDurationFor(commandId: CommandId): Long = when (commandId) {
+        CommandId.NEXT, CommandId.PREV -> PAGE_SWIPE_FLING_DURATION_MS
+        else -> SCROLL_SWIPE_FLING_DURATION_MS
+    }
+
     /**
      * 스크롤 한 번에 화면의 몇 배를 움직일지.
      *
@@ -382,16 +411,6 @@ class InputExecutionEngine(
      * 문제였지만 **속도가 더 컸다** — 스와이프 시간을 줄여 플링으로 인식되게 한 것과
      * 함께 봐야 한다([GestureAccessibilityService]의 duration).
      */
-    private fun scrollRatio(commandId: CommandId): Float {
-        return when (commandId) {
-            CommandId.SCROLL_DOWN_SMALL,
-            CommandId.SCROLL_UP_SMALL -> 0.35f
-            CommandId.SCROLL_DOWN_LARGE,
-            CommandId.SCROLL_UP_LARGE -> 0.9f
-            else -> 0.9f
-        }
-    }
-
     private fun getScreenSize(): Pair<Int, Int> {
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val metrics = DisplayMetrics()
@@ -454,7 +473,9 @@ class InputExecutionEngine(
          * 끌면 화면이 조금 움직였다가 임계값을 못 넘고 제자리로 돌아온다.
          * 너무 줄이면(50ms 미만) 이벤트가 몇 개 안 생겨 속도 계산이 불안정해진다.
          */
-        const val SCROLL_SWIPE_DURATION_MS = 160L
+        const val SCROLL_SWIPE_DURATION_MS = 260L
+        const val SCROLL_SWIPE_WARMUP_DURATION_MS = 205L
+        const val SCROLL_SWIPE_FLING_DURATION_MS = 55L
 
         /**
          * 페이지 넘김(좌우) 스와이프 시간. **스크롤보다 길어야 한다.**
@@ -463,7 +484,9 @@ class InputExecutionEngine(
          * 판정하므로 중간 이동 이벤트가 촘촘해야 한다. 160ms로는 샘플이 부족해
          * 아이콘에 눌림 모션만 나타나고 페이지가 넘어가지 않았다.
          */
-        const val PAGE_SWIPE_DURATION_MS = 400L
+        const val PAGE_SWIPE_DURATION_MS = 280L
+        const val PAGE_SWIPE_WARMUP_DURATION_MS = 225L
+        const val PAGE_SWIPE_FLING_DURATION_MS = 55L
 
         /**
          * 좌우 스와이프(NEXT/PREV) 거리. 화면 폭 대비 비율.
@@ -471,7 +494,11 @@ class InputExecutionEngine(
          * 페이지 넘김은 보통 "화면 폭의 절반 이상을 넘겼는가" 또는 "속도가 충분한가"로
          * 판정한다. 0.5는 경계선이라 넘어갈 때와 아닐 때가 갈렸다.
          */
-        const val HORIZONTAL_SWIPE_RATIO = 0.75f
+        const val VERTICAL_SCROLL_START_RATIO = 0.85f
+        const val VERTICAL_SCROLL_END_RATIO = 0.20f
+        const val HORIZONTAL_PAGE_START_RATIO = 0.85f
+        const val HORIZONTAL_PAGE_END_RATIO = 0.15f
+        const val HORIZONTAL_PAGE_SWIPE_Y_RATIO = 0.72f
 
         /**
          * 화면 가장자리에서 띄울 여백 비율.

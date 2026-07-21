@@ -10,11 +10,7 @@ import com.mobileconductor.core.model.CommandId.NEXT
 import com.mobileconductor.core.model.CommandId.PREV
 import com.mobileconductor.core.model.CommandId.RESUME
 import com.mobileconductor.core.model.CommandId.SCROLL_DOWN
-import com.mobileconductor.core.model.CommandId.SCROLL_DOWN_LARGE
-import com.mobileconductor.core.model.CommandId.SCROLL_DOWN_SMALL
 import com.mobileconductor.core.model.CommandId.SCROLL_UP
-import com.mobileconductor.core.model.CommandId.SCROLL_UP_LARGE
-import com.mobileconductor.core.model.CommandId.SCROLL_UP_SMALL
 import com.mobileconductor.core.model.CommandId.STOP
 import com.mobileconductor.core.model.CommandId.TOUCH
 import com.mobileconductor.core.model.CommandId.UNLOCK
@@ -54,10 +50,6 @@ class CommandGateTest {
         ExpectedAccept(ACTIVE, DRAG_START, DRAGGING, DRAG_START),
         ExpectedAccept(ACTIVE, SCROLL_DOWN, ACTIVE, SCROLL_DOWN),
         ExpectedAccept(ACTIVE, SCROLL_UP, ACTIVE, SCROLL_UP),
-        ExpectedAccept(ACTIVE, SCROLL_DOWN_SMALL, ACTIVE, SCROLL_DOWN_SMALL),
-        ExpectedAccept(ACTIVE, SCROLL_UP_SMALL, ACTIVE, SCROLL_UP_SMALL),
-        ExpectedAccept(ACTIVE, SCROLL_DOWN_LARGE, ACTIVE, SCROLL_DOWN_LARGE),
-        ExpectedAccept(ACTIVE, SCROLL_UP_LARGE, ACTIVE, SCROLL_UP_LARGE),
         ExpectedAccept(ACTIVE, NEXT, ACTIVE, NEXT),
         ExpectedAccept(ACTIVE, PREV, ACTIVE, PREV),
         ExpectedAccept(ACTIVE, STOP, PAUSED, null),
@@ -74,9 +66,9 @@ class CommandGateTest {
     )
 
     @Test
-    fun `enumerates all 85 combinations`() {
+    fun `enumerates all 65 combinations`() {
         assertEquals("5 states", 5, ControllerState.values().size)
-        assertEquals("17 commands", 17, CommandId.values().size)
+        assertEquals("13 commands", 13, CommandId.values().size)
     }
 
     @Test
@@ -113,8 +105,8 @@ class CommandGateTest {
             }
         }
 
-        assertEquals("valid (Accept) combinations", 19, acceptCount)
-        assertEquals("invalid (Reject) combinations", 85 - 19, rejectCount)
+        assertEquals("valid (Accept) combinations", 15, acceptCount)
+        assertEquals("invalid (Reject) combinations", 65 - 15, rejectCount)
     }
 
     // ── 특수 케이스 (명세 forD 6절) ────────────────────────────────
