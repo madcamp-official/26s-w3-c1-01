@@ -3,6 +3,7 @@ package com.madcamp.handsfree.integration
 import android.Manifest
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Build
@@ -35,12 +36,19 @@ import kotlinx.coroutines.launch
  *
  * 그래서 **이 화면을 나가도 포인터가 계속 움직인다.** 예전에는 여기서 카메라를
  * 켰는데, CameraX가 Activity 라이프사이클에 묶여서 앱을 나가면 얼어붙었다.
+ *
+ * 화면은 두 개다: 초기 설정(screen_setup, 앱 이름 + 3단계)과 메인(screen_main).
+ * setupComplete 여부로 전환하며, 설정이 하나라도 꺼지면 설정 화면으로 되돌아간다.
  */
 class ControllerActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityControllerBinding
     private lateinit var telemetrySettings: TelemetrySettings
     private lateinit var telemetryQueue: LocalTelemetryQueue
+
+    // 3단계(초기 얼굴인식 설정)에서 시작한 보정이 끝나면 서비스를 내려 "대기" 상태로 둔다.
+    // 화면2로 넘어올 때 자동으로 켜지지 않고, 사용자가 직접 "시작"을 누르게 하기 위함.
+    private var stopAfterInitialCalibration = false
 
     /** C의 접근성 서비스 컴포넌트. 실제 구현 패키지는 통합 이전 그대로다(OPEN_ISSUES 참고). */
     private val accessibilityServiceComponent by lazy {
@@ -52,7 +60,17 @@ class ControllerActivity : AppCompatActivity() {
     ) { granted ->
         val telemetryLogger = Telemetry.logger(applicationContext)
         if (granted.values.all { it }) {
-            startControllerAndCalibrate()
+            if (calibrationDone()) {
+                // 보정 프로파일이 이미 있다(예: 카메라·마이크만 껐다 다시 켠 경우) → 보정이 필요 없다.
+                // 이때 startControllerAndCalibrate를 부르면 보정을 건너뛴 채 서비스만 켜져서
+                // 화면2로 넘어갈 때 자동으로 포인터가 떠 버린다. 그러니 서비스를 켜지 않는다
+                // (떠 있으면 내려서 "대기" 상태로 둔다). 사용자가 화면2에서 "시작"을 눌러야 켜진다.
+                OverlayService.stop(this)
+            } else {
+                // 첫 보정 필요 → 서비스를 켜고 초기 보정. 보정이 끝나면 collector가 서비스를 내린다.
+                stopAfterInitialCalibration = true
+                startControllerAndCalibrate()
+            }
         } else {
             if (granted[Manifest.permission.RECORD_AUDIO] == false) {
                 telemetryLogger.logAppError("MIC_PERMISSION_DENIED")
@@ -60,14 +78,9 @@ class ControllerActivity : AppCompatActivity() {
             if (granted[Manifest.permission.CAMERA] == false) {
                 telemetryLogger.logAppError("CAMERA_PERMISSION_DENIED")
             }
-            applyStatus(
-                R.string.status_permission_denied,
-                R.color.status_denied_bg,
-                R.color.status_denied_fg,
-                R.color.status_denied_dot,
-            )
-            updateTelemetryStatus()
         }
+        // 허가/거부 어느 쪽이든 화면(단계 상태 포함)을 다시 계산한다.
+        updateScreen()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,17 +109,21 @@ class ControllerActivity : AppCompatActivity() {
             binding.usageGuideArrow.text = if (expanding) "▴" else "▾"
         }
 
-        // 저장된 프로파일을 버리고 처음부터 다시 잡는다.
-        // 자세나 거치 위치가 바뀌면 기존 범위가 안 맞는다.
+        // 화면2 "시작": 카메라·마이크 켜기. 권한·보정이 이미 끝났으므로 서비스만 켠다
+        // (저장된 프로파일이 있어 runCalibrationIfNeeded가 22초 보정을 건너뛴다).
+        binding.btnStart.setOnClickListener {
+            startControllerAndCalibrate()
+        }
+        // "얼굴 인식 설정 다시 하기" = 보정을 처음부터 다시 잡는다. 보정엔 카메라가 필요하므로
+        // 서비스가 꺼져 있으면 먼저 켠다(서비스가 뜨면 예약된 보정이 실행된다).
+        // 프로파일을 미리 지우지 않는 이유: 지우면 setupComplete가 잠깐 false가 돼 설정 화면으로 튄다.
         binding.btnRecalibrate.setOnClickListener {
-            CalibrationStore.clear(this)
+            startOverlayService()
             ControllerPipeline.runCalibration()
         }
-        // 알림의 정지 버튼과 같은 동작. 서비스가 죽으면 파이프라인도 같이 정리된다.
+        // 정지 = 카메라·마이크 끄기. 서비스가 죽으면 파이프라인도 같이 정리된다.
         binding.btnStop.setOnClickListener {
             OverlayService.stop(this)
-            applyStatus(R.string.status_idle, R.color.status_idle_bg, R.color.status_idle_fg, R.color.status_idle_dot)
-            refreshStepStates()
         }
 
         val telemetryLogger = Telemetry.logger(applicationContext)
@@ -135,17 +152,9 @@ class ControllerActivity : AppCompatActivity() {
                 telemetryQueue.count(),
             )
         }
-        // 업로드 테스트 버튼은 개발용이다. 낯선 사용자에게 배포하는 화면에
-        // "Logcat", "Firebase" 같은 말이 보이면 앱이 미완성으로 읽힌다.
-        // 기능을 지우지 않고 숨기기만 하는 이유는 디버그 빌드에서 계속 쓰기 때문이다.
+        // Firebase 업로드 테스트는 개발용이라 디버그 빌드에서만 노출한다.
+        // (로컬 Logcat 업로드 테스트 버튼은 제거했다.)
         if (BuildConfig.DEBUG) {
-            binding.btnUploadTest.setOnClickListener {
-                TelemetryUploadWorker.enqueueManualTestUpload(
-                    context = applicationContext,
-                    useLogcatUploader = true,
-                )
-                binding.telemetryStatusText.setText(R.string.telemetry_upload_test_started)
-            }
             binding.btnUploadFirebaseTest.setOnClickListener {
                 TelemetryUploadWorker.enqueueManualTestUpload(
                     context = applicationContext,
@@ -154,52 +163,60 @@ class ControllerActivity : AppCompatActivity() {
                 binding.telemetryStatusText.setText(R.string.telemetry_firebase_upload_test_started)
             }
         } else {
-            binding.btnUploadTest.visibility = View.GONE
             binding.btnUploadFirebaseTest.visibility = View.GONE
         }
         updateTelemetryStatus()
-        refreshStepStates()
+        updateScreen()
 
         lifecycleScope.launch {
-            ControllerPipeline.calibrating.collect { running ->
-                when {
-                    running -> applyStatus(
-                        R.string.status_calibrating,
-                        R.color.status_calibrating_bg,
-                        R.color.status_calibrating_fg,
-                        R.color.status_calibrating_dot,
-                    )
-                    ControllerPipeline.isRunning -> applyStatus(
-                        R.string.status_active,
-                        R.color.status_active_bg,
-                        R.color.status_active_fg,
-                        R.color.status_active_dot,
-                    )
-                    else -> applyStatus(
-                        R.string.status_idle,
-                        R.color.status_idle_bg,
-                        R.color.status_idle_fg,
-                        R.color.status_idle_dot,
-                    )
+            ControllerPipeline.calibrating.collect { calibrating ->
+                // 초기 설정(3단계)에서 시작한 보정이 끝나면 서비스를 내려 화면2를 "대기" 상태로 둔다.
+                // 이렇게 해야 화면2로 넘어올 때 자동으로 켜지지 않고, 사용자가 "시작"을 눌러야 켜진다.
+                if (!calibrating && stopAfterInitialCalibration && calibrationDone()) {
+                    stopAfterInitialCalibration = false
+                    OverlayService.stop(this@ControllerActivity)
                 }
-                refreshStepStates()
+                // 초기 보정이 끝나 프로파일이 저장되면 setupComplete=true가 되어 메인 화면으로 넘어간다.
+                updateScreen()
             }
         }
     }
 
     override fun onResume() {
         super.onResume()
-        // 접근성/오버레이 권한은 설정 화면에서 바뀌고 돌아오므로, 돌아올 때마다 다시 확인해야 한다.
-        refreshStepStates()
+        // 접근성/오버레이/카메라·마이크 권한은 설정 화면에서 바뀌고 돌아오므로,
+        // 돌아올 때마다 다시 확인한다. 하나라도 꺼졌으면 설정 화면으로 되돌린다.
+        updateScreen()
     }
 
-    /** 상태 배지의 텍스트·배경·점 색을 한 번에 맞춘다. */
-    private fun applyStatus(labelRes: Int, bgColorRes: Int, fgColorRes: Int, dotColorRes: Int) {
-        binding.statusText.setText(labelRes)
-        binding.statusText.setTextColor(ContextCompat.getColor(this, fgColorRes))
-        binding.statusBadge.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, bgColorRes))
-        binding.statusDot.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, dotColorRes))
+    /**
+     * 설정 완료 여부에 따라 초기 설정 화면 ↔ 메인 화면을 전환한다.
+     *
+     * 메인 화면에는 상태 표시를 두지 않는다 — 서비스 start/stop이 비동기라 버튼 직후
+     * 실행 여부를 정확히 알 수 없었고(옛 값이 찍힘), 어차피 포인터 오버레이와 시작/정지
+     * 버튼으로 상태가 드러나 중복이었다.
+     */
+    private fun updateScreen() {
+        if (setupComplete()) {
+            binding.screenSetup.visibility = View.GONE
+            binding.screenMain.visibility = View.VISIBLE
+        } else {
+            binding.screenMain.visibility = View.GONE
+            binding.screenSetup.visibility = View.VISIBLE
+            refreshStepStates()
+        }
     }
+
+    /** 세 단계(접근성·오버레이·카메라마이크+초기보정)가 모두 끝났는지. 메인 화면 진입 조건. */
+    private fun setupComplete(): Boolean =
+        isAccessibilityServiceEnabled() && Settings.canDrawOverlays(this) &&
+            cameraMicGranted() && calibrationDone()
+
+    private fun cameraMicGranted(): Boolean =
+        ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+    private fun calibrationDone(): Boolean = CalibrationStore.load(this) != null
 
     private fun isAccessibilityServiceEnabled(): Boolean {
         val enabled = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
@@ -215,7 +232,8 @@ class ControllerActivity : AppCompatActivity() {
     private fun refreshStepStates() {
         val accessibilityDone = isAccessibilityServiceEnabled()
         val overlayDone = Settings.canDrawOverlays(this)
-        val startDone = ControllerPipeline.isRunning
+        // 3단계 "초기 얼굴인식 설정" = 카메라·마이크 허가 + 초기 캘리브레이션 완료
+        val startDone = cameraMicGranted() && calibrationDone()
 
         setStepState(binding.stepAccessibility, binding.stepAccessibilityNumber, "1", done = accessibilityDone, locked = false)
         setStepState(binding.stepOverlay, binding.stepOverlayNumber, "2", done = overlayDone, locked = !accessibilityDone)
@@ -261,12 +279,6 @@ class ControllerActivity : AppCompatActivity() {
      */
     private fun startControllerAndCalibrate() {
         if (!Settings.canDrawOverlays(this)) {
-            applyStatus(
-                R.string.status_need_overlay,
-                R.color.status_progress_bg,
-                R.color.status_progress_fg,
-                R.color.status_progress_dot,
-            )
             requestOverlayPermission()
             return
         }

@@ -83,6 +83,22 @@ class Orchestrator(
         }
     }
 
+    /**
+     * 재보정 진입 → 상태를 CALIBRATING으로 되돌린다. [onCalibrationComplete]의 역방향.
+     *
+     * 상태 기계에는 ACTIVE→CALIBRATING 전이 규칙이 없다(음성 명령으로는 못 간다). 재보정은
+     * 사용자가 화면에서 명시적으로 요청하는 것이라 명령이 아닌 별도 진입점으로 둔다.
+     * **이게 없으면 재보정 중에도 상태가 ACTIVE라, 오버레이가 보정 UI(기준점) 대신 포인터를
+     * 그려서 "그냥 시작한" 것처럼 보이고 사용자가 따라갈 점이 없어 엉터리 데이터가 수집된다.**
+     */
+    fun enterCalibration() {
+        scope.launch {
+            mutex.withLock {
+                stateHolder.set(ControllerState.CALIBRATING)
+            }
+        }
+    }
+
     /** 구독을 중단한다. */
     fun stop() {
         job?.cancel()

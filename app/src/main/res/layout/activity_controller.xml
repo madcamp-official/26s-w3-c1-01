@@ -11,373 +11,242 @@
         android:orientation="vertical"
         android:padding="20dp">
 
-        <!-- 1. 헤더 -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/setup_title"
-            android:textColor="@color/text_primary"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/setup_subtitle"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
-
-        <!-- 2. 상태 배지 -->
+        <!-- ══════════════ 화면 1: 초기 설정 (앱 이름 + 3단계만) ══════════════ -->
         <LinearLayout
-            android:id="@+id/status_badge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:background="@drawable/bg_pill"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="14dp"
-            android:paddingTop="7dp"
-            android:paddingEnd="14dp"
-            android:paddingBottom="7dp">
-
-            <View
-                android:id="@+id/status_dot"
-                android:layout_width="7dp"
-                android:layout_height="7dp"
-                android:background="@drawable/bg_dot" />
-
-            <TextView
-                android:id="@+id/status_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="@string/status_idle"
-                android:textColor="@color/status_idle_fg"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- 3. 사용법 가이드 (언제든 열람 가능) -->
-        <LinearLayout
-            android:id="@+id/usage_guide_toggle"
+            android:id="@+id/screen_setup"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:background="@drawable/bg_guide_toggle"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:minHeight="44dp"
-            android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="10dp">
+            android:orientation="vertical">
 
             <TextView
-                android:layout_width="26dp"
-                android:layout_height="26dp"
-                android:background="@drawable/bg_circle_outline"
-                android:gravity="center"
-                android:text="?"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_weight="1"
-                android:text="@string/usage_guide_title"
+                android:text="@string/setup_title"
                 android:textColor="@color/text_primary"
-                android:textSize="14sp"
+                android:textSize="24sp"
                 android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/usage_guide_arrow"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="▾"
-                android:textColor="@color/text_secondary"
-                android:textSize="16sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/usage_guide_content"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/bg_guide_content"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:visibility="gone">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:letterSpacing="0.04"
-                android:text="음성 명령어"
-                android:textAllCaps="true"
+                android:layout_marginTop="4dp"
+                android:text="@string/setup_subtitle"
                 android:textColor="@color/text_secondary"
-                android:textSize="11sp"
-                android:textStyle="bold" />
+                android:textSize="14sp" />
 
+            <!-- 설정 3단계 (순서형 카드) -->
             <LinearLayout
-                android:id="@+id/command_table"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_command_table"
-                android:clipToOutline="true"
+                android:layout_marginTop="22dp"
                 android:orientation="vertical">
 
-                <!-- 탭 · 이동 -->
-                <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_tap" />
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;탭&quot; · &quot;터치&quot; · &quot;클릭&quot;" />
-                    <TextView style="@style/CommandAction" android:text="현재 위치 탭" />
-                </LinearLayout>
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;다음&quot; · &quot;오른쪽&quot;" />
-                    <TextView style="@style/CommandAction" android:text="다음으로 이동" />
-                </LinearLayout>
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;이전&quot; · &quot;왼쪽&quot;" />
-                    <TextView style="@style/CommandAction" android:text="이전으로 이동" />
+                <LinearLayout
+                    android:id="@+id/step_accessibility"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_step_card"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="44dp"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/step_accessibility_number"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="@drawable/bg_circle_fill"
+                        android:gravity="center"
+                        android:text="1"
+                        android:textColor="@color/card_bg"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/step_accessibility_title"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/step_accessibility_desc"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
                 </LinearLayout>
 
-                <!-- 스크롤 -->
-                <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_scroll" />
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;위로&quot; · &quot;올려&quot; · &quot;위&quot;" />
-                    <TextView style="@style/CommandAction" android:text="위로 스크롤" />
-                </LinearLayout>
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;아래로&quot; · &quot;내려&quot; · &quot;아래&quot;" />
-                    <TextView style="@style/CommandAction" android:text="아래로 스크롤" />
+                <LinearLayout
+                    android:id="@+id/step_overlay"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_step_card"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="44dp"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/step_overlay_number"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="@drawable/bg_circle_fill"
+                        android:gravity="center"
+                        android:text="2"
+                        android:textColor="@color/card_bg"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/step_overlay_title"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/step_overlay_desc"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
                 </LinearLayout>
 
-                <!-- 화면 전환 -->
-                <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_back" />
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;취소&quot; · &quot;뒤로&quot;" />
-                    <TextView style="@style/CommandAction" android:text="뒤로 가기" />
-                </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/step_start"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_step_card"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="44dp"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
 
-                <!-- 잠금 · 종료 -->
-                <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_control" />
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;잠금&quot; · &quot;끝&quot; · &quot;멈춰&quot;" />
-                    <TextView style="@style/CommandAction" android:text="화면 잠금 (표시 숨김)" />
-                </LinearLayout>
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;해제&quot;" />
-                    <TextView style="@style/CommandAction" android:text="잠금 해제" />
-                </LinearLayout>
-                <LinearLayout style="@style/CommandRow">
-                    <TextView style="@style/CommandSynonyms" android:text="&quot;종료&quot;" />
-                    <TextView style="@style/CommandAction" android:text="앱 종료" />
+                    <TextView
+                        android:id="@+id/step_start_number"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="@drawable/bg_circle_fill"
+                        android:gravity="center"
+                        android:text="3"
+                        android:textColor="@color/card_bg"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/step_start_title"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/step_start_desc"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
+        </LinearLayout>
 
+        <!-- ══════════════ 화면 2: 메인 (설정 완료 후) ══════════════ -->
+        <LinearLayout
+            android:id="@+id/screen_main"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- 앱 이름 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/setup_title"
+                android:textColor="@color/text_primary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <!-- 시작 / 정지 (같은 행) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:background="@drawable/bg_card"
-                android:orientation="horizontal"
-                android:padding="12dp">
+                android:layout_marginTop="18dp"
+                android:orientation="horizontal">
 
-                <TextView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:background="@drawable/bg_circle_fill"
-                    android:gravity="center"
-                    android:text="i"
+                <Button
+                    android:id="@+id/btn_start"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_primary_button"
+                    android:minHeight="44dp"
+                    android:text="@string/btn_start"
+                    android:textAllCaps="false"
                     android:textColor="@color/card_bg"
-                    android:textSize="11sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
 
-                <TextView
+                <Button
+                    android:id="@+id/btn_stop"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="10dp"
                     android:layout_weight="1"
-                    android:text="@string/usage_guide_notification_note"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- 4. 설정 3단계 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
-            android:orientation="vertical">
-
-            <LinearLayout
-                android:id="@+id/step_accessibility"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_step_card"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:minHeight="44dp"
-                android:orientation="horizontal"
-                android:padding="16dp">
-
-                <TextView
-                    android:id="@+id/step_accessibility_number"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_circle_fill"
-                    android:gravity="center"
-                    android:text="1"
-                    android:textColor="@color/card_bg"
-                    android:textSize="14sp"
+                    android:background="@drawable/bg_outline_button_danger"
+                    android:minHeight="44dp"
+                    android:text="@string/btn_stop"
+                    android:textAllCaps="false"
+                    android:textColor="@color/danger_text"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/step_accessibility_title"
-                        android:textColor="@color/text_primary"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/step_accessibility_desc"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-                </LinearLayout>
             </LinearLayout>
 
-            <LinearLayout
-                android:id="@+id/step_overlay"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_step_card"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:minHeight="44dp"
-                android:orientation="horizontal"
-                android:padding="16dp">
-
-                <TextView
-                    android:id="@+id/step_overlay_number"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_circle_fill"
-                    android:gravity="center"
-                    android:text="2"
-                    android:textColor="@color/card_bg"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/step_overlay_title"
-                        android:textColor="@color/text_primary"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/step_overlay_desc"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/step_start"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_step_card"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:minHeight="44dp"
-                android:orientation="horizontal"
-                android:padding="16dp">
-
-                <TextView
-                    android:id="@+id/step_start_number"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_circle_fill"
-                    android:gravity="center"
-                    android:text="3"
-                    android:textColor="@color/card_bg"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/step_start_title"
-                        android:textColor="@color/text_primary"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/step_start_desc"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-                </LinearLayout>
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- 5. 보조 제어 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:orientation="horizontal">
-
+            <!-- 얼굴 인식 설정 다시 하기 (한 행 전체) -->
             <Button
                 android:id="@+id/btn_recalibrate"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_marginTop="10dp"
                 android:background="@drawable/bg_outline_button"
                 android:minHeight="44dp"
                 android:text="@string/btn_recalibrate"
@@ -386,138 +255,266 @@
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/btn_stop"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_outline_button_danger"
-                android:minHeight="44dp"
-                android:text="@string/btn_stop"
-                android:textAllCaps="false"
-                android:textColor="@color/danger_text"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- ────────── 진단 데이터 섹션: 항목·로직은 기존 그대로, 스타일만 통일 ────────── -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:background="@drawable/bg_card"
-            android:orientation="vertical"
-            android:padding="18dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/telemetry_title"
-                android:textColor="@color/text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <CheckBox
-                android:id="@+id/checkbox_telemetry_consent"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="@string/telemetry_consent"
-                android:textColor="@color/text_primary"
-                android:textSize="13sp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="@string/telemetry_description"
-                android:textColor="@color/text_secondary"
-                android:textSize="12.5sp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/telemetry_not_collected"
-                android:textColor="@color/text_secondary"
-                android:textSize="12.5sp" />
-
-            <EditText
-                android:id="@+id/feedback_message"
+            <!-- 사용법 가이드 (언제든 열람 가능) -->
+            <LinearLayout
+                android:id="@+id/usage_guide_toggle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:background="@drawable/bg_input"
-                android:hint="@string/feedback_hint"
-                android:inputType="textMultiLine"
-                android:minLines="2"
-                android:padding="12dp"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_faint"
-                android:textSize="13sp" />
+                android:background="@drawable/bg_guide_toggle"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:minHeight="44dp"
+                android:orientation="horizontal"
+                android:paddingStart="16dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="10dp">
 
-            <EditText
-                android:id="@+id/feedback_situation"
+                <TextView
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:background="@drawable/bg_circle_outline"
+                    android:gravity="center"
+                    android:text="?"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:text="@string/usage_guide_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/usage_guide_arrow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▾"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/usage_guide_content"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:background="@drawable/bg_input"
-                android:hint="@string/feedback_situation_hint"
-                android:inputType="textMultiLine"
-                android:minLines="2"
-                android:padding="12dp"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_faint"
-                android:textSize="13sp" />
+                android:background="@drawable/bg_guide_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
 
-            <Button
-                android:id="@+id/btn_send_feedback"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_primary_button"
-                android:minHeight="44dp"
-                android:paddingStart="18dp"
-                android:paddingEnd="18dp"
-                android:text="@string/btn_send_feedback"
-                android:textAllCaps="false"
-                android:textColor="@color/card_bg"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:letterSpacing="0.04"
+                    android:text="음성 명령어"
+                    android:textAllCaps="true"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/btn_upload_test"
+                <LinearLayout
+                    android:id="@+id/command_table"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_command_table"
+                    android:clipToOutline="true"
+                    android:orientation="vertical">
+
+                    <!-- 탭 · 이동 -->
+                    <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_tap" />
+                    <LinearLayout style="@style/CommandRow">
+                        <TextView style="@style/CommandSynonyms" android:text="&quot;탭&quot; · &quot;터치&quot; · &quot;클릭&quot;" />
+                        <TextView style="@style/CommandAction" android:text="현재 위치 탭" />
+                    </LinearLayout>
+                    <LinearLayout style="@style/CommandRow">
+                        <TextView style="@style/CommandSynonyms" android:text="&quot;다음&quot; · &quot;오른쪽&quot;" />
+                        <TextView style="@style/CommandAction" android:text="다음으로 이동" />
+                    </LinearLayout>
+                    <LinearLayout style="@style/CommandRow">
+                        <TextView style="@style/CommandSynonyms" android:text="&quot;이전&quot; · &quot;왼쪽&quot;" />
+                        <TextView style="@style/CommandAction" android:text="이전으로 이동" />
+                    </LinearLayout>
+
+                    <!-- 스크롤 -->
+                    <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_scroll" />
+                    <LinearLayout style="@style/CommandRow">
+                        <TextView style="@style/CommandSynonyms" android:text="&quot;위로&quot; · &quot;올려&quot; · &quot;위&quot;" />
+                        <TextView style="@style/CommandAction" android:text="위로 스크롤" />
+                    </LinearLayout>
+                    <LinearLayout style="@style/CommandRow">
+                        <TextView style="@style/CommandSynonyms" android:text="&quot;아래로&quot; · &quot;내려&quot; · &quot;아래&quot;" />
+                        <TextView style="@style/CommandAction" android:text="아래로 스크롤" />
+                    </LinearLayout>
+
+                    <!-- 화면 전환 -->
+                    <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_back" />
+                    <LinearLayout style="@style/CommandRow">
+                        <TextView style="@style/CommandSynonyms" android:text="&quot;취소&quot; · &quot;뒤로&quot;" />
+                        <TextView style="@style/CommandAction" android:text="뒤로 가기" />
+                    </LinearLayout>
+
+                    <!-- 잠금 · 종료 -->
+                    <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_control" />
+                    <LinearLayout style="@style/CommandRow">
+                        <TextView style="@style/CommandSynonyms" android:text="&quot;잠금&quot; · &quot;끝&quot; · &quot;멈춰&quot;" />
+                        <TextView style="@style/CommandAction" android:text="화면 잠금 (표시 숨김)" />
+                    </LinearLayout>
+                    <LinearLayout style="@style/CommandRow">
+                        <TextView style="@style/CommandSynonyms" android:text="&quot;해제&quot;" />
+                        <TextView style="@style/CommandAction" android:text="잠금 해제" />
+                    </LinearLayout>
+                    <LinearLayout style="@style/CommandRow">
+                        <TextView style="@style/CommandSynonyms" android:text="&quot;종료&quot;" />
+                        <TextView style="@style/CommandAction" android:text="앱 종료" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:background="@drawable/bg_circle_fill"
+                        android:gravity="center"
+                        android:text="i"
+                        android:textColor="@color/card_bg"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:text="@string/usage_guide_notification_note"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 진단 데이터 전송 (로컬 업로드 테스트(Logcat) 버튼 제거) -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_outline_button"
-                android:minHeight="44dp"
-                android:text="@string/btn_upload_test"
-                android:textAllCaps="false"
-                android:textColor="@color/text_secondary"
-                android:textSize="12.5sp" />
+                android:layout_marginTop="28dp"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="18dp">
 
-            <Button
-                android:id="@+id/btn_upload_firebase_test"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_outline_button"
-                android:minHeight="44dp"
-                android:text="@string/btn_upload_firebase_test"
-                android:textAllCaps="false"
-                android:textColor="@color/text_secondary"
-                android:textSize="12.5sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/telemetry_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/telemetry_status_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="@string/telemetry_status_disabled"
-                android:textColor="@color/text_faint"
-                android:textSize="12sp" />
+                <CheckBox
+                    android:id="@+id/checkbox_telemetry_consent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/telemetry_consent"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/telemetry_description"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12.5sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/telemetry_not_collected"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12.5sp" />
+
+                <EditText
+                    android:id="@+id/feedback_message"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/bg_input"
+                    android:hint="@string/feedback_hint"
+                    android:inputType="textMultiLine"
+                    android:minLines="2"
+                    android:padding="12dp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_faint"
+                    android:textSize="13sp" />
+
+                <EditText
+                    android:id="@+id/feedback_situation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_input"
+                    android:hint="@string/feedback_situation_hint"
+                    android:inputType="textMultiLine"
+                    android:minLines="2"
+                    android:padding="12dp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_faint"
+                    android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/btn_send_feedback"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_primary_button"
+                    android:minHeight="44dp"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:text="@string/btn_send_feedback"
+                    android:textAllCaps="false"
+                    android:textColor="@color/card_bg"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btn_upload_firebase_test"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_outline_button"
+                    android:minHeight="44dp"
+                    android:text="@string/btn_upload_firebase_test"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12.5sp" />
+
+                <TextView
+                    android:id="@+id/telemetry_status_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/telemetry_status_disabled"
+                    android:textColor="@color/text_faint"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
         </LinearLayout>
 
     </LinearLayout>

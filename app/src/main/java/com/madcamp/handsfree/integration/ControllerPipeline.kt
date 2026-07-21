@@ -219,14 +219,17 @@ object ControllerPipeline {
         calibrationJob = s.launch {
             val telemetryLogger = appContext?.let { Telemetry.logger(it) }
             _calibrating.value = true
+            // 상태를 CALIBRATING으로 되돌린다. 재보정 시 이게 없으면 상태가 ACTIVE로 남아
+            // 오버레이가 보정 UI(기준점) 대신 포인터를 그려 "그냥 시작"한 것처럼 보인다.
+            // (초기 보정은 초기 상태가 이미 CALIBRATING이라 이 호출이 무해하다.)
+            c.orchestrator.enterCalibration()
             val started = System.currentTimeMillis()
             Log.i(TAG, "캘리브레이션 시작")
             telemetryLogger?.logCalibrationStarted()
             try {
                 c.calibrationController.run(profileId = "default")
-                // 프로파일이 A에 주입된 뒤에야 ACTIVE로 보낸다.
-                // CALIBRATING에서는 모든 음성 명령이 폐기되므로 명령 주입으로는 못 나간다.
-                // 재보정일 때는 이미 ACTIVE라 이 호출이 무시된다(그대로 두는 게 맞다).
+                // 수집이 끝나면 프로파일이 A에 주입된 뒤 CALIBRATING→ACTIVE로 보낸다.
+                // 재보정도 enterCalibration으로 CALIBRATING을 거치므로 이 전이가 정상 동작한다.
                 c.orchestrator.onCalibrationComplete()
                 OverlayBus.publishCalibration(null)
                 val durationMs = System.currentTimeMillis() - started
