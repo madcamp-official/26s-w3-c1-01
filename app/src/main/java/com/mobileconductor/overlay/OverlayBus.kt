@@ -38,6 +38,10 @@ object OverlayBus {
     @Volatile
     var onManualUnlock: (() -> Unit)? = null
 
+    /** "종료" 명령 시 실행될 앱 종료 액션(파이프라인이 서비스 정지로 설정). */
+    @Volatile
+    var onExit: (() -> Unit)? = null
+
     fun publishState(state: ControllerState) { _state.value = state }
     fun publishPointer(frame: PointerFrame) { _pointer.value = frame }
     fun publishCalibration(ui: CalibrationUiState?) { _calibration.value = ui }

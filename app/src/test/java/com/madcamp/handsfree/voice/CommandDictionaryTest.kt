@@ -43,15 +43,29 @@ class CommandDictionaryTest {
     }
 
     @Test
-    fun `multi word commands can be chained`() {
-        val matches = CommandDictionary.matchAll("드래그 시작 놓아")
-        assertEquals(2, matches.size)
-        assertEquals("DRAG_START", matches[0].commandId)
-        assertEquals("DRAG_END", matches[1].commandId)
+    fun `lock synonyms include stop and end phrases`() {
+        // "끝"/"멈춰"도 잠금으로 매핑된다 — 별도 STOP/일시정지(RESUME)는 폐기했다.
+        listOf("잠금", "끝", "멈춰").forEach {
+            assertEquals("LOCK", CommandDictionary.match(it))
+        }
     }
 
     @Test
-    fun `13 commandIds are defined`() {
-        assertEquals(13, CommandDictionary.definitions.map { it.commandId }.distinct().size)
+    fun `exit is its own command, not lock`() {
+        // "종료"는 앱 종료 전용 명령이다. 잠금과 분리했다.
+        assertEquals("EXIT", CommandDictionary.match("종료"))
+    }
+
+    @Test
+    fun `removed drag and pause commands no longer match`() {
+        // "드래그 취소"는 제외 — "취소"가 BACK(뒤로가기)으로 살아 있어 그 부분이 매칭된다.
+        listOf("잡아", "놓아", "놔", "드래그 시작", "다시 시작").forEach {
+            assertTrue("'$it' should no longer match", CommandDictionary.matchAll(it).isEmpty())
+        }
+    }
+
+    @Test
+    fun `9 commandIds are defined`() {
+        assertEquals(9, CommandDictionary.definitions.map { it.commandId }.distinct().size)
     }
 }

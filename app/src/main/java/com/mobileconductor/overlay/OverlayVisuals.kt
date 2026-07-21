@@ -30,12 +30,15 @@ enum class IndicatorColor { GREEN, YELLOW, GRAY, BLUE, PROGRESS }
  * @param indicatorColor 인디케이터 색상
  * @param label 인디케이터 옆 텍스트("일시정지"/"잠김"/"드래그 중"). 없으면 null
  * @param showManualUnlock LOCKED에서 수동 잠금 해제 버튼 노출 여부(명세 forD 4절: 상시 노출)
+ * @param showStatusHud 상단 상태 인디케이터(점+라벨) 노출 여부. LOCKED는 화면을 비우려고 끈다 —
+ *   단 수동 해제 버튼([showManualUnlock])은 갇힘 방지를 위해 별개로 항상 남긴다(FR-005).
  */
 data class OverlayVisuals(
     val pointerVisibility: PointerVisibility,
     val indicatorColor: IndicatorColor,
     val label: String?,
     val showManualUnlock: Boolean,
+    val showStatusHud: Boolean,
 ) {
     companion object {
         /** 명세 forD 4절 표 그대로의 상태별 시각 규칙. */
@@ -45,6 +48,7 @@ data class OverlayVisuals(
                 indicatorColor = IndicatorColor.GREEN,
                 label = null,
                 showManualUnlock = false,
+                showStatusHud = true,
             )
 
             ControllerState.PAUSED -> OverlayVisuals(
@@ -52,13 +56,17 @@ data class OverlayVisuals(
                 indicatorColor = IndicatorColor.YELLOW,
                 label = "일시정지",
                 showManualUnlock = false,
+                showStatusHud = true,
             )
 
+            // 잠금 = 화면을 비운다. 포인터·상태 인디케이터·라벨 전부 숨기고
+            // 오직 수동 해제 버튼만 남긴다(음성 "해제" 실패 시 갇힘 방지, FR-005).
             ControllerState.LOCKED -> OverlayVisuals(
                 pointerVisibility = PointerVisibility.HIDDEN,
                 indicatorColor = IndicatorColor.GRAY,
                 label = "잠김",
                 showManualUnlock = true,
+                showStatusHud = false,
             )
 
             ControllerState.DRAGGING -> OverlayVisuals(
@@ -66,6 +74,7 @@ data class OverlayVisuals(
                 indicatorColor = IndicatorColor.BLUE,
                 label = "드래그 중",
                 showManualUnlock = false,
+                showStatusHud = true,
             )
 
             ControllerState.CALIBRATING -> OverlayVisuals(
@@ -73,6 +82,7 @@ data class OverlayVisuals(
                 indicatorColor = IndicatorColor.PROGRESS,
                 label = null,
                 showManualUnlock = false,
+                showStatusHud = true,
             )
         }
     }

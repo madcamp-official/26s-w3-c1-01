@@ -11,19 +11,18 @@ data class CommandMatch(val commandId: String, val matchedText: String)
 object CommandDictionary {
 
     val definitions: List<CommandDefinition> = listOf(
-        CommandDefinition("TOUCH", listOf("터치", "클릭")),
-        CommandDefinition("BACK", listOf("취소")),
-        CommandDefinition("DRAG_START", listOf("잡아", "드래그 시작")),
-        CommandDefinition("DRAG_END", listOf("놓아", "놔")),
-        CommandDefinition("DRAG_CANCEL", listOf("드래그 취소")),
-        CommandDefinition("SCROLL_DOWN", listOf("아래로", "내려")),
-        CommandDefinition("SCROLL_UP", listOf("위로", "올려")),
-        CommandDefinition("STOP", listOf("멈춰")),
-        CommandDefinition("RESUME", listOf("다시 시작")),
-        CommandDefinition("LOCK", listOf("잠금")),
+        CommandDefinition("TOUCH", listOf("탭", "터치", "클릭")),
+        CommandDefinition("BACK", listOf("취소", "뒤로")),
+        CommandDefinition("SCROLL_DOWN", listOf("아래로", "내려", "아래")),
+        CommandDefinition("SCROLL_UP", listOf("위로", "올려", "위")),
+        // 잠금 = 화면을 잠그고 모든 HUD를 숨긴다. "멈춰"도 여기로 — 별도 일시정지(STOP/RESUME)는 폐기했다.
+        CommandDefinition("LOCK", listOf("잠금", "끝", "멈춰")),
         CommandDefinition("UNLOCK", listOf("해제")),
         CommandDefinition("NEXT", listOf("다음", "오른쪽")),
         CommandDefinition("PREV", listOf("이전", "왼쪽")),
+        // 종료 = 앱을 통째로 내린다(상태 전이가 아님). 상태기계(CommandId enum/게이트)를 거치지 않고
+        // VoiceCommandSourceAdapter가 이 문자열을 직접 가로채 OverlayBus.onExit로 서비스를 정지시킨다.
+        CommandDefinition("EXIT", listOf("종료")),
     )
 
     private val phraseToCommandId: Map<String, String> =

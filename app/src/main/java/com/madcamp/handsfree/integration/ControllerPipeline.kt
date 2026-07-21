@@ -11,6 +11,7 @@ import com.mobileconductor.core.model.ControllerState
 import com.mobileconductor.orchestrator.ConductorContainer
 import com.mobileconductor.overlay.ClickFeedback
 import com.mobileconductor.overlay.OverlayBus
+import com.mobileconductor.overlay.OverlayService
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -133,6 +134,10 @@ object ControllerPipeline {
 
         // 음성 인식이 반복 실패해도 앱에서 빠져나올 수 있어야 한다(FR-005)
         OverlayBus.onManualUnlock = { d.voice.inject(CommandId.UNLOCK) }
+
+        // "종료" 발화 → 컨트롤러를 통째로 내린다. 앱 "정지" 버튼과 같은 경로다
+        // (서비스 정지 → onDestroy에서 파이프라인/오버레이 정리). stoppedByUser도 여기서 세워진다.
+        OverlayBus.onExit = { OverlayService.stop(service.applicationContext) }
 
         // 제어 명령(STOP/RESUME/LOCK/UNLOCK)은 상태만 바꾸고 C로 가지 않아서
         // 실행 결과도 폐기 사유도 남지 않는다. 즉 상태 전이를 안 찍으면
@@ -257,6 +262,7 @@ object ControllerPipeline {
         deps?.voice?.stop()
         container?.orchestrator?.stop()
         OverlayBus.onManualUnlock = null
+        OverlayBus.onExit = null
         tracker = null
         deps = null
         container = null

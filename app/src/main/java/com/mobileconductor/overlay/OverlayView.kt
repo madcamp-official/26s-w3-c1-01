@@ -100,7 +100,9 @@ class OverlayView(context: Context) : View(context) {
             drawPointer(canvas, w, h)
         }
 
-        drawIndicator(canvas, w)
+        // LOCKED은 화면을 비운다 — 상태 인디케이터/라벨/얼굴미검출 표시를 전부 끈다.
+        // 단 아래 수동 해제 버튼은 showManualUnlock으로 계속 그려진다(갇힘 방지).
+        if (visuals.showStatusHud) drawIndicator(canvas, w)
         drawClickRipple(canvas, w, h)
 
         if (visuals.showManualUnlock) drawUnlockButton(canvas, w, h) else unlockRect.setEmpty()

@@ -9,6 +9,7 @@ import com.madcamp.handsfree.voice.VoiceRecognitionEngine
 import com.mobileconductor.core.model.CommandId
 import com.mobileconductor.core.model.VoiceCommandEvent
 import com.mobileconductor.orchestrator.port.VoiceCommandSource
+import com.mobileconductor.overlay.OverlayBus
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -50,6 +51,16 @@ class VoiceCommandSourceAdapter(
 
     override fun onVoiceCommand(event: BVoiceCommandEvent) {
         Log.i(TAG, "발화 인식 - \"${event.rawText}\" -> ${event.commandId} (신뢰도 ${event.confidence})")
+
+        // "종료"는 상태 전이가 아니라 앱 수명 종료다. D의 상태기계(CommandId enum/게이트)를
+        // 거치지 않고 여기서 바로 처리한다 — 그래야 LOCKED/CALIBRATING 등 어떤 상태에서도
+        // 종료가 먹는다(게이트를 태우면 그 상태들에서 폐기돼 버린다).
+        if (event.commandId == EXIT_COMMAND_ID) {
+            Log.i(TAG, "종료 명령 — 앱을 종료한다")
+            recordVoiceSuccess()
+            OverlayBus.onExit?.invoke()
+            return
+        }
 
         val commandId = runCatching { CommandId.valueOf(event.commandId) }.getOrNull()
         if (commandId == null) {
@@ -109,5 +120,8 @@ class VoiceCommandSourceAdapter(
     private companion object {
         const val TAG = "HF-VoiceCmd"
         const val VOICE_SUMMARY_INTERVAL_MS = 60_000L
+
+        // 사전(CommandDictionary)의 EXIT commandId. enum에 없는 특수 명령이라 문자열로 맞춘다.
+        const val EXIT_COMMAND_ID = "EXIT"
     }
 }

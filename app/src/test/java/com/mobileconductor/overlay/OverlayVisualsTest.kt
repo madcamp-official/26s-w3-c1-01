@@ -64,4 +64,20 @@ class OverlayVisualsTest {
             assertEquals("$state", expected, OverlayVisuals.forState(state).showManualUnlock)
         }
     }
+
+    @Test
+    fun `only LOCKED hides the status hud`() {
+        // 잠금은 화면을 비우려고 상단 인디케이터/라벨을 끈다. 나머지 상태는 모두 표시한다.
+        for (state in ControllerState.values()) {
+            val expected = state != ControllerState.LOCKED
+            assertEquals("$state", expected, OverlayVisuals.forState(state).showStatusHud)
+        }
+    }
+
+    @Test
+    fun `LOCKED hides status hud but keeps the unlock button`() {
+        val v = OverlayVisuals.forState(ControllerState.LOCKED)
+        assertFalse("잠금 시 상태 HUD는 숨긴다", v.showStatusHud)
+        assertTrue("그래도 수동 해제 버튼은 남긴다", v.showManualUnlock)
+    }
 }
