@@ -72,6 +72,9 @@ class OverlayService : LifecycleService() {
         lifecycleScope.launch {
             OverlayBus.clicks.collect { overlayView.triggerClick(it.x, it.y) }
         }
+        lifecycleScope.launch {
+            OverlayBus.listening.collect { overlayView.setListening(it) }
+        }
     }
 
     /** LOCKED에서만 창을 터치 가능하게 하여 해제 버튼이 이벤트를 받도록 한다. */

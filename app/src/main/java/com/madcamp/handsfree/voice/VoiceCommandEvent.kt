@@ -34,4 +34,12 @@ interface VoiceCommandListener {
 
     /** 사전에 없는 발화 디버그 로그(선택 구현, 기본은 무시). */
     fun onUnrecognizedSpeech(rawText: String) {}
+
+    /**
+     * 인식기가 실제로 발화를 캡처하는 구간인지 알린다(선택 구현).
+     *
+     * true = 청취 시작("뚱")~종료("띵") 사이. 지금 말하면 잡힌다.
+     * false = 그 밖의 죽은 구간(결과 처리·재시작 대기). 말해도 무시되므로 UI에서 비활성 표시에 쓴다.
+     */
+    fun onListeningStateChanged(listening: Boolean) {}
 }
