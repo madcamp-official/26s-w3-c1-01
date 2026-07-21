@@ -104,6 +104,7 @@ class CalibrationControllerTest {
             source = ConstantFaceSource(yaw = 0f, pitch = 0f, faceDetected = false),
             consumer = consumer,
             config = CalibrationConfig(
+                introDelayMs = 0L,
                 settleDelayMs = 1_000L,
                 samplesPerPoint = 5,
                 noFaceTimeoutMs = 5_000L,

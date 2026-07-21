@@ -12,6 +12,7 @@ import android.view.MotionEvent
 import android.view.View
 import com.mobileconductor.core.model.ControllerState
 import com.mobileconductor.core.model.PointerFrame
+import com.mobileconductor.orchestrator.calibration.CalibrationPhase
 import com.mobileconductor.orchestrator.calibration.CalibrationUiState
 
 /**
@@ -154,6 +155,11 @@ class OverlayView(context: Context) : View(context) {
 
     private fun drawCalibration(canvas: Canvas, w: Float, h: Float) {
         val ui = calibration ?: return
+        if (ui.phase == CalibrationPhase.ALIGNING) {
+            drawCalibrationIntro(canvas, w, h)
+            return
+        }
+
         // 현재 기준점 하이라이트
         val cx = ui.currentPoint.screenX * w
         val cy = ui.currentPoint.screenY * h
@@ -164,14 +170,48 @@ class OverlayView(context: Context) : View(context) {
 
         // 하단 진행률 바
         val margin = dp(24f)
-        val barTop = h - dp(48f)
+        val bottomSafeArea = systemBottomInset().toFloat()
+        val barTop = h - bottomSafeArea - dp(88f)
         val barBottom = barTop + dp(10f)
         fill.color = Color.DKGRAY; fill.alpha = 180
         canvas.drawRoundRect(margin, barTop, w - margin, barBottom, dp(5f), dp(5f), fill)
         fill.color = colorFor(IndicatorColor.GREEN); fill.alpha = 255
         val filledRight = margin + (w - 2 * margin) * ui.progress
         canvas.drawRoundRect(margin, barTop, filledRight, barBottom, dp(5f), dp(5f), fill)
-        canvas.drawText("보정 ${(ui.progress * 100).toInt()}%", margin, barTop - dp(8f), text)
+    }
+
+    private fun drawCalibrationIntro(canvas: Canvas, w: Float, h: Float) {
+        val cardWidth = minOf(w - dp(48f), dp(360f))
+        val cardHeight = dp(188f)
+        val left = (w - cardWidth) / 2f
+        val top = (h - cardHeight) / 2f
+        val card = RectF(left, top, left + cardWidth, top + cardHeight)
+
+        fill.color = Color.parseColor("#263238")
+        fill.alpha = 235
+        canvas.drawRoundRect(card, dp(18f), dp(18f), fill)
+
+        text.textAlign = Paint.Align.CENTER
+        text.color = Color.WHITE
+        text.typeface = Typeface.DEFAULT_BOLD
+        text.textSize = dp(20f)
+        canvas.drawText("고개를 돌려 점을 따라가세요", card.centerX(), top + dp(48f), text)
+
+        text.typeface = Typeface.DEFAULT
+        text.textSize = dp(14f)
+        text.color = Color.parseColor("#E0F2F1")
+        canvas.drawText("눈만 움직이면 보정이 부정확할 수 있어요", card.centerX(), top + dp(82f), text)
+        canvas.drawText("기기를 내려놓고 고정하면 더 정확합니다", card.centerX(), top + dp(110f), text)
+
+        text.typeface = Typeface.DEFAULT_BOLD
+        text.textSize = dp(13f)
+        text.color = Color.parseColor("#A7FFEB")
+        canvas.drawText("잠시 후 점이 나타납니다", card.centerX(), top + dp(152f), text)
+
+        text.textAlign = Paint.Align.LEFT
+        text.color = Color.WHITE
+        text.textSize = dp(14f)
+        text.typeface = Typeface.DEFAULT_BOLD
     }
 
     private fun drawClickRipple(canvas: Canvas, w: Float, h: Float) {
@@ -219,6 +259,10 @@ class OverlayView(context: Context) : View(context) {
         IndicatorColor.GRAY -> Color.parseColor("#9E9E9E")
         IndicatorColor.PROGRESS -> Color.parseColor("#4CAF50")
     }
+
+    @Suppress("DEPRECATION")
+    private fun systemBottomInset(): Int =
+        rootWindowInsets?.systemWindowInsetBottom ?: 0
 
     private fun dp(value: Float): Float =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics)

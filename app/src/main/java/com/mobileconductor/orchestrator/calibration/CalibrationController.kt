@@ -24,6 +24,13 @@ data class Adjustment(
 /** 캘리브레이션 튜닝 파라미터. */
 data class CalibrationConfig(
     /**
+     * 캘리브레이션 시작 전 사용법 안내를 보여주는 시간.
+     *
+     * 사용자가 눈만 굴려 기준점을 따라가는 경우가 많아서, 실제 수집 전에
+     * "기기를 고정하고 고개를 돌려 점을 따라가라"는 안내를 먼저 노출한다.
+     */
+    val introDelayMs: Long = 2_500L,
+    /**
      * 기준점 안내가 뜬 뒤 수집을 시작하기까지의 대기 시간.
      *
      * **0으로 두면 캘리브레이션이 통째로 망가진다.** 이 값이 없던 최초 통합 버전에서는
@@ -87,6 +94,8 @@ class CalibrationController(
         profileId: String,
         awaitAdjustment: suspend () -> Adjustment = { Adjustment() },
     ): CalibrationProfile {
+        _uiState.value = CalibrationUiState.INITIAL
+        delay(config.introDelayMs)
         while (true) {
             val collected = collectAllPoints()
             if (collected == null) {

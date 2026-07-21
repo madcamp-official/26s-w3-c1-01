@@ -15,6 +15,8 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.madcamp.handsfree.BuildConfig
 import com.madcamp.handsfree.R
@@ -87,6 +89,7 @@ class ControllerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityControllerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        applySystemBarInsets()
 
         TelemetryCrashHandler.install(applicationContext)
         TelemetryUploadWorker.scheduleDailyAt9(applicationContext)
@@ -179,6 +182,20 @@ class ControllerActivity : AppCompatActivity() {
                 // 초기 보정이 끝나 프로파일이 저장되면 setupComplete=true가 되어 메인 화면으로 넘어간다.
                 updateScreen()
             }
+        }
+    }
+
+    private fun applySystemBarInsets() {
+        val initialBottomPadding = binding.root.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(
+                view.paddingLeft,
+                view.paddingTop,
+                view.paddingRight,
+                initialBottomPadding + systemBars.bottom,
+            )
+            insets
         }
     }
 
