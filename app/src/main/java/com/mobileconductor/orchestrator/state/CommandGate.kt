@@ -7,7 +7,7 @@ import com.mobileconductor.core.model.ExecutionCommand
 /**
  * D의 심장 — 게이트키핑 순수 함수.
  *
- * 부작용이 전혀 없다. 오직 (상태, commandId)만 보고 판정하므로 3×8=24 조합을 유닛 테스트로
+ * 부작용이 전혀 없다. 오직 (상태, commandId)만 보고 판정하므로 3×9=27 조합을 유닛 테스트로
  * 전수 검증할 수 있다. 상태 전이/실행은 호출자(Orchestrator)가 [GateDecision]을 보고 수행한다.
  */
 object CommandGate {

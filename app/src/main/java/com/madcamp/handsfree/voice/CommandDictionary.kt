@@ -14,6 +14,8 @@ object CommandDictionary {
         // "탭"은 한 음절이라 STT 인식이 불안정해 뺐다(터치/클릭으로 충분). 짧은 발화는 오인식·저신뢰도로 걸린다.
         CommandDefinition("TOUCH", listOf("터치", "클릭")),
         CommandDefinition("BACK", listOf("취소", "뒤로")),
+        // 홈으로 = 홈 화면으로. 다른 명령처럼 ACTIVE에서만 유효하다(LOCKED·보정 중엔 거부).
+        CommandDefinition("HOME", listOf("홈으로", "홈 화면")),
         CommandDefinition("SCROLL_DOWN", listOf("아래로", "내려", "아래")),
         CommandDefinition("SCROLL_UP", listOf("위로", "올려", "위")),
         // 잠금 = 화면을 잠그고 모든 HUD를 숨긴다. "멈춰"도 여기로 — 별도 일시정지(STOP/RESUME)는 폐기했다.

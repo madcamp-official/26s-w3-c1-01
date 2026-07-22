@@ -31,6 +31,7 @@ class InputExecutionEngine(
         when (command.commandId) {
             CommandId.TOUCH -> executeTouch(command, onResult)
             CommandId.BACK -> executeBack(command, onResult)
+            CommandId.HOME -> executeHome(command, onResult)
             CommandId.SCROLL_DOWN,
             CommandId.SCROLL_UP,
             CommandId.NEXT,
@@ -56,6 +57,24 @@ class InputExecutionEngine(
     ) {
         val service = getService(command, null, onResult) ?: return
         val success = service.back()
+
+        onResult(
+            ExecutionResult(
+                commandId = command.commandId,
+                success = success,
+                x = null,
+                y = null,
+                errorReason = if (success) null else "OS_INJECTION_FAILED"
+            )
+        )
+    }
+
+    private fun executeHome(
+        command: ExecutionCommand,
+        onResult: (ExecutionResult) -> Unit
+    ) {
+        val service = getService(command, null, onResult) ?: return
+        val success = service.home()
 
         onResult(
             ExecutionResult(

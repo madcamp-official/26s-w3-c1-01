@@ -6,13 +6,14 @@ package com.mobileconductor.core.model
  * B(Voice)가 발화 → 동의어 처리 → commandId로 정규화한 뒤 D에 전달한다.
  * D는 오직 이 enum 값만 보고 게이트키핑을 수행한다(원문 텍스트/동의어를 모른다).
  *
- * 상태 × commandId = 3 × 8 = 24 조합이 [com.mobileconductor.orchestrator.state.CommandGate]의
+ * 상태 × commandId = 3 × 9 = 27 조합이 [com.mobileconductor.orchestrator.state.CommandGate]의
  * 전수 유닛 테스트 대상이다.
  */
 enum class CommandId {
     // 터치 — FR-002
     TOUCH,
     BACK,               // 취소(뒤로가기)
+    HOME,               // 홈으로 — 홈 화면으로. 다른 명령처럼 ACTIVE에서만 유효.
 
     // 스크롤 — FR-004
     SCROLL_DOWN,        // 기본 아래 (~50%)

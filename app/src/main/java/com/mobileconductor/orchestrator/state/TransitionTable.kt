@@ -2,6 +2,7 @@ package com.mobileconductor.orchestrator.state
 
 import com.mobileconductor.core.model.CommandId
 import com.mobileconductor.core.model.CommandId.BACK
+import com.mobileconductor.core.model.CommandId.HOME
 import com.mobileconductor.core.model.CommandId.LOCK
 import com.mobileconductor.core.model.CommandId.NEXT
 import com.mobileconductor.core.model.CommandId.PREV
@@ -39,6 +40,7 @@ object TransitionTable {
         put(ACTIVE to SCROLL_UP, Rule(ACTIVE, SCROLL_UP))
         put(ACTIVE to NEXT, Rule(ACTIVE, NEXT))
         put(ACTIVE to PREV, Rule(ACTIVE, PREV))
+        put(ACTIVE to HOME, Rule(ACTIVE, HOME))        // 홈으로 — 다른 명령처럼 ACTIVE에서만
         put(ACTIVE to LOCK, Rule(LOCKED, null))        // 제어: OS 이벤트 없음
 
         // ── LOCKED ────────────────────────────────────────────────

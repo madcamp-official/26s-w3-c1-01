@@ -38,6 +38,10 @@ class GestureAccessibilityService : AccessibilityService() {
         return performGlobalAction(GLOBAL_ACTION_BACK)
     }
 
+    fun home(): Boolean {
+        return performGlobalAction(GLOBAL_ACTION_HOME)
+    }
+
     fun tap(x: Float, y: Float, onResult: (Boolean) -> Unit) {
         val path = Path().apply {
             moveTo(x, y)

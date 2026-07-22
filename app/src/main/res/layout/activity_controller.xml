@@ -362,6 +362,10 @@
                         <TextView style="@style/CommandSynonyms" android:text="&quot;취소&quot; · &quot;뒤로&quot;" />
                         <TextView style="@style/CommandAction" android:text="뒤로 가기" />
                     </LinearLayout>
+                    <LinearLayout style="@style/CommandRow">
+                        <TextView style="@style/CommandSynonyms" android:text="&quot;홈으로&quot;" />
+                        <TextView style="@style/CommandAction" android:text="홈 화면으로" />
+                    </LinearLayout>
 
                     <!-- 잠금 · 종료 -->
                     <TextView style="@style/CommandGroupHeader" android:text="@string/usage_guide_group_control" />

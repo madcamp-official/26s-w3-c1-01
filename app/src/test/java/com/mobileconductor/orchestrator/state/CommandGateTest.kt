@@ -2,6 +2,7 @@ package com.mobileconductor.orchestrator.state
 
 import com.mobileconductor.core.model.CommandId
 import com.mobileconductor.core.model.CommandId.BACK
+import com.mobileconductor.core.model.CommandId.HOME
 import com.mobileconductor.core.model.CommandId.LOCK
 import com.mobileconductor.core.model.CommandId.NEXT
 import com.mobileconductor.core.model.CommandId.PREV
@@ -19,7 +20,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * 상태 전이표의 모든 케이스(3 상태 × 8 commandId = 24)를 전수 검증.
+ * 상태 전이표의 모든 케이스(3 상태 × 9 commandId = 27)를 전수 검증.
  *
  * [validRows]는 스펙 forD 2절 유효성 표를 main 코드([TransitionTable])와 독립적으로 다시 기술한
  * "정답지"다. 어느 한쪽이 잘못 바뀌면 이 테스트가 깨진다.
@@ -44,15 +45,16 @@ class CommandGateTest {
         ExpectedAccept(ACTIVE, SCROLL_UP, ACTIVE, SCROLL_UP),
         ExpectedAccept(ACTIVE, NEXT, ACTIVE, NEXT),
         ExpectedAccept(ACTIVE, PREV, ACTIVE, PREV),
+        ExpectedAccept(ACTIVE, HOME, ACTIVE, HOME),    // 홈으로 — 다른 명령처럼 ACTIVE에서만
         ExpectedAccept(ACTIVE, LOCK, LOCKED, null),
         // LOCKED
         ExpectedAccept(LOCKED, UNLOCK, ACTIVE, null),
     )
 
     @Test
-    fun `enumerates all 24 combinations`() {
+    fun `enumerates all 27 combinations`() {
         assertEquals("3 states", 3, ControllerState.values().size)
-        assertEquals("8 commands", 8, CommandId.values().size)
+        assertEquals("9 commands", 9, CommandId.values().size)
     }
 
     @Test
@@ -89,8 +91,8 @@ class CommandGateTest {
             }
         }
 
-        assertEquals("valid (Accept) combinations", 8, acceptCount)
-        assertEquals("invalid (Reject) combinations", 24 - 8, rejectCount)
+        assertEquals("valid (Accept) combinations", 9, acceptCount)
+        assertEquals("invalid (Reject) combinations", 27 - 9, rejectCount)
     }
 
     @Test

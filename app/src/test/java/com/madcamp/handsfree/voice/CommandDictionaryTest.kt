@@ -65,7 +65,13 @@ class CommandDictionaryTest {
     }
 
     @Test
-    fun `9 commandIds are defined`() {
-        assertEquals(9, CommandDictionary.definitions.map { it.commandId }.distinct().size)
+    fun `home maps to HOME command`() {
+        assertEquals("HOME", CommandDictionary.match("홈으로"))
+        assertEquals("HOME", CommandDictionary.match("홈 화면"))
+    }
+
+    @Test
+    fun `10 commandIds are defined`() {
+        assertEquals(10, CommandDictionary.definitions.map { it.commandId }.distinct().size)
     }
 }
